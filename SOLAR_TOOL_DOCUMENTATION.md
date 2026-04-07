@@ -66,7 +66,7 @@ Das Solar-Tool ist eine Web-Anwendung zur einfachen Konfiguration und Bestellung
 
 #### Anzeige der Zusatzprodukte (Übersicht vs. Detail)
 - In der Konfigurations-Übersicht werden Zusatzprodukte identisch zur Produktliste in der Detailansicht gerendert: links die Paketanzahl (×), darunter die VE-Angabe.
-- Es wird keine in Klammern stehende „echte“ Stückzahl zwischen Name und Preis angezeigt, da sie für Zusatzprodukte nicht berechnet wird.
+- Es wird keine in Klammern stehende „echte" Stückzahl zwischen Name und Preis angezeigt, da sie für Zusatzprodukte nicht berechnet wird.
 - Einheitliche VE-Anzeigen:
   - MC4 Stecker: 50 Stück je Paket (Paketanzahl = ⌈Module/30⌉)
   - Solarkabel: 100 m
@@ -88,24 +88,31 @@ Das Solar-Tool ist eine Web-Anwendung zur einfachen Konfiguration und Bestellung
 - **Grid-System** - Dynamische Modul-Anordnung
 - **Smart Parser** - Intelligente Texteingabe-Verarbeitung
 - **Web Worker** - Background-Berechnungen
- - **PDF-Erstellung** - Dynamische A4-Seiten via `html2canvas` + `jsPDF` (Template in `#pdf-root`)
+- **PDF-Erstellung** - Dynamische A4-Seiten via `html2canvas` + `jsPDF` (Template in `#pdf-root`)
 
 ### **Backend-Integration:**
-- **Foxy.io** - Warenkorb-System via Formular-Submit
- - **Webhook (kompakt)** - Übertragung nur essenzieller Daten (siehe unten)
-### **Warenkorb-Ablauf (Foxy‑Add-Flow)**
-- Hinzufügen zum Warenkorb erfolgt über bestehende CMS‑Formulare pro Produkt.
-- Identifikation der Produkte ausschließlich über den Formular‑Feldwert `name` (IDs entfallen).
-- Die Menge wird vor dem Submit in das Feld `quantity` geschrieben; optional wird `customer_type` gesetzt (aus `localStorage.solarTool_customerType`).
-- Submit erfolgt ohne Redirect via `form.requestSubmit()` bzw. Button mit `data-fc-add-to-cart`.
-- Es werden keine Hidden‑Webflow‑Formulare mehr erzeugt; Webflow‑Commerce‑APIs werden nicht mehr genutzt.
+- **Shopify Storefront API** (GraphQL) – Warenkorb über `cartCreate` / `cartLinesAdd` / `cartAttributesUpdate`; technischer Zugriff über serverseitigen Proxy (`api/shopify-storefront.js` auf Vercel, Token nur in Env).
+- **Client:** `shopifyStorefrontCart.js` (`window.solarShopifyStorefront`).
+- **Webhook (kompakt)** - Übertragung nur essenzieller Daten (siehe unten)
 
+### **Warenkorb-Ablauf (Storefront API)**
+- Kein `POST /cart/add.js` mehr; Cart-ID wird in `localStorage` gehalten (`solar_shopify_storefront_cart_id`).
+- Varianten über `SHOPIFY_VARIANT_MAP` (numerische ID oder GID).
+- Kundentyp als Cart-Attribut `customer_type`.
+- Einrichtung: siehe `docs/STOREFRONT_SETUP.md` und `README.md`.
+
+### **Shopify Konfiguration:**
+- `SHOPIFY_VARIANT_MAP` enthält die Shopify Variant-IDs für alle Produkte.
+- Vercel-Umgebung: `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN`.
+- Bei fehlender Konfiguration (Platzhalter-IDs) zeigt das Tool entsprechende Fehlermeldungen.
+
+### **Zusätzliche Integrationen:**
 - **Webhook-Analytics** - Nutzungsauswertung für Optimierungen
 - **Keine ERP-Anbindung** (noch nicht, geplant für Zukunft)
 
 ### **Datenfluss:**
 ```
-Planung (Papier) → Solar-Tool → Warenkorb → Webflow Shop → Bestellung → Installation
+Planung (Papier) → Solar-Tool (App) → Storefront API → Checkout → Bestellung → Installation
                               ↓
                          Webhook Analytics → Optimierungen
 ```
@@ -161,16 +168,13 @@ Hinweise:
 - `selection.selectedCount` stimmt mit `selectedCoords.length` überein.
 
 ### 📓 Changelog
- - 2025-10-08: Fix: „Gesamte Auswahl in den Warenkorb“ ergänzt jetzt die Tellerkopfschrauben korrekt (global = 2× Dachhaken). PDF: Optimierer (Huawei/BRC) erscheinen auf der Zusatzprodukte-Seite; Menge aus UI (`opti-qty`).
- - 2025-10-05: Warenkorb auf Foxy.io umgestellt. Produkte werden über CMS‑Formulare anhand des Feldes `name` und `quantity` hinzugefügt. Webflow‑Cart‑APIs und Hidden‑Form‑Mapping entfernt. Debug‑Helfer `window.debugFoxyForms()` hinzugefügt.
-- 2025-08-30: Schienenverbinder-Logik korrigiert (Produktliste): pro Reihe jetzt Verbinder = Anzahl der Schienen − 2. Beispiel: Bei 4 Schienen in einer Reihe werden 2 Verbinder angezeigt (vorher 4). Test: Konfiguration mit einer Reihe, die zwei Schienenstücke pro Rail benötigt; prüfen, dass Verbinderanzahl halbiert ist.
+- 2026-03-25: **Headless / Storefront API.** Warenkorb über GraphQL (`shopifyStorefrontCart.js`) und Vercel-Proxy `api/shopify-storefront.js`; kein Ajax `cart/add.js` mehr. PDF-Bibliotheken (jsPDF/html2canvas) erst bei PDF-Export nachgeladen. Siehe `docs/STOREFRONT_SETUP.md`, `docs/THEME_BRIDGE.md`.
+- 2026-01-26: **Shopify-Migration abgeschlossen.** Vollständige Umstellung auf Shopify Cart API. Foxy.io-Fallback entfernt. Kundentyp-Management in `script-new.js` integriert. Veraltete Dateien (fullpage-cart, customer-type-popup, cms-search) entfernt.
+- 2025-10-08: Fix: „Gesamte Auswahl in den Warenkorb" ergänzt jetzt die Tellerkopfschrauben korrekt (global = 2× Dachhaken). PDF: Optimierer (Huawei/BRC) erscheinen auf der Zusatzprodukte-Seite; Menge aus UI (`opti-qty`).
+- 2025-08-30: Schienenverbinder-Logik korrigiert (Produktliste): pro Reihe jetzt Verbinder = Anzahl der Schienen − 2.
 - 2025-08-25: Webhook-Payload verschlankt (ohne Bilddaten), hinzugefügt: `selection`-Metadaten und kompaktes `productQuantities`.
-- 2025-08-26: Smart Config – Verteilungsmodus `gleichmäßig` deaktiviert; Nutzerhinweis ergänzt und Beispiele angepasst.
-- 2025-09-13: Kundentyp-Popup (Privat/Firma, 48h Speicherung). Korrektur: Privatkunden Nettopreise, Firmenkunden Bruttopreise (×1,19). Warenkorb bevorzugt Brutto-SKUs für Zusatzprodukte bei Firmenkunden (Platzhalter-IDs).
-- 2025-09-15: Ulica‑Module in 36er‑Paletten gebündelt. Bei aktivem Ulica‑Modul (500 W) bzw. allgemeinen Modulen (450 W) werden automatisch so viele Paletten wie möglich gebildet, Rest als Einzelmodule. In Produktliste, PDF und Warenkorb erscheinen eigene Paletten‑Produkte (inkl./exkl. MwSt je Kundentyp). Beispiele: 69 → 1 Palette + 33; 73 → 2 Paletten + 1.
-- 2025-09-16: Automatische Warenkorb-Kompatibilitätsprüfung und Austausch-Logik basierend auf Kundentyp (Privat/Gewerbe) nach `customer-type-popup.js` verlagert (global aktiv), nutzt `window.solarGrid` für Add-Flow/Form-Mapping, mit Fallback-Warnungen bei fehlendem Mapping.
-- 2025-09-18: CMS-Suche segmentiert in `customer-type-popup.js`. Suchfelder filtern jeweils nur das aktive Kundentyp-Segment; URL‑Parameter werden weiterhin unterstützt.
- - 2025-09-21: Fullpage‑Warenkorb hinzugefügt (`fullpage-cart.html/.css/.js`). Der Fullpage‑Warenkorb spiegelt den Webflow‑Native‑Cart eins‑zu‑eins, nutzt dessen versteckte Formulare für alle Änderungen (Menge ±, Entfernen, Leeren, Checkout) und zeigt Preise stets netto an. Kundentyp‑Hinweis: Privatkunden sehen den 0% MwSt‑Hinweis gem. §12 Abs. 3 UStG, Firmenkunden den MwSt‑Hinweis im Bestellprozess. `CartCompatibility` bleibt aktiv und räumt ggf. unpassende Artikel.
+- 2025-09-13: Kundentyp-Logik (Privat/Firma). Privatkunden Nettopreise, Firmenkunden Bruttopreise (×1,19).
+- 2025-09-15: Ulica‑Module in 36er‑Paletten gebündelt.
 
 ---
 
@@ -188,11 +192,10 @@ VE = {
   Schiene_240_cm: 8,
   Schiene_360_cm: 8,
   Solarmodul: 1,
-  // Neu: Paletten (36 Stück pro Palette)
   SolarmodulPalette: 36,
   UlicaSolarBlackJadeFlowPalette: 36,
-  MC4_Stecker: /* Anzeige/VE im UI: 50 Stück, Berechnung in Paketen */ 1,
-  Solarkabel: /* Anzeige/VE im UI: 100 m */ 1,
+  MC4_Stecker: 1,
+  Solarkabel: 1,
   Holzunterleger: 50,
   Quetschkabelschuhe: 100
 }
@@ -203,43 +206,22 @@ VE = {
 - Rundung auf nächste Verpackungseinheit
 - Orientierungsabhängige Schienenlängen
 - Zusatzprodukte: Quetschkabelschuhe pauschal 1 VE; Erdungsband nach berechneter Länge (auf 600 cm aufrunden)
- - Schienenverbinder: pro Reihe = Gesamtanzahl der Schienenstücke (beide Schienen) − 2
- - Kundentyp-Logik: Privatkunden sehen Nettopreise, Firmenkunden Bruttopreise (19% MwSt). Die Kalkulation nutzt `getPackPriceForQuantity()` mit MwSt-Aufschlag via `applyVatIfBusiness()`.
- - Palettenpreise: Für Paletten werden die Shop‑VE‑Preise genutzt (keine Stück‑Staffel). Netto/Brutto‑Produkt wird automatisch je Kundentyp gewählt.
+- Schienenverbinder: pro Reihe = Gesamtanzahl der Schienenstücke (beide Schienen) − 2
+- Kundentyp-Logik: Privatkunden sehen Nettopreise, Firmenkunden Bruttopreise (19% MwSt). Die Kalkulation nutzt `getPackPriceForQuantity()` mit MwSt-Aufschlag via `applyVatIfBusiness()`.
+- Palettenpreise: Für Paletten werden die Shop‑VE‑Preise genutzt (keine Stück‑Staffel). Netto/Brutto‑Produkt wird automatisch je Kundentyp gewählt.
 
-### **Kundentyp-Popup (48h Speicherung)**
-- Dateien: `customer-type-popup.html`, `customer-type-popup.css`, `customer-type-popup.js`
-- Einbindung: Auf jeder Shop-Seite HTML-Snippet einfügen und CSS/JS referenzieren
-  - HTML direkt in die Seite oder via CMS-Snippet
-  - CSS im `<head>`: `<link rel="stylesheet" href="/customer-type-popup.css">`
-  - JS am Ende von `<body>`: `<script src="/customer-type-popup.js" defer></script>`
+### **Kundentyp-Management (integriert in script-new.js)**
+- Funktionalität direkt in `script-new.js` integriert
 - Verhalten:
-  - Overlay erscheint, wenn kein Kundentyp gesetzt ist oder 48h abgelaufen sind
-  - Buttons: „Privatkunde“ setzt `type=private`, „Firmenkunde“ setzt `type=business`
-  - Speichern in `localStorage.solarTool_customerType = { type, expiresAt }`
-  - Nach Auswahl automatische Aktualisierung der Seite (`location.reload()`), damit Preise und Warenkorb-IDs korrekt greifen
-  - CMS-Suche ist segmentiert: `data-input="search-X"` filtert nur innerhalb des zugehörigen Segments (Privat/Gewerbe). `data-div="noResult-X"` erscheint nur im aktiven Segment. URL‑Sync über `data-url` bleibt erhalten.
+  - Kundentyp (Privat/Gewerbe) wird in `localStorage.solarTool_customerType` gespeichert
+  - Buttons mit `data-customer-type` Attribut steuern die Auswahl
+  - Preise passen sich automatisch dem Kundentyp an
+  - URL-Parameter `?kundentyp=privat` oder `?kundentyp=firma` werden unterstützt
 
-### **Warenkorb (Brutto-SKUs für Firmenkunden)**
-- Brutto-Produkt-Overrides (Platzhalter) für Zusatzprodukte in `script.js` per `PRODUCT_MAP_BRUTTO_ADDITIONAL`
-- Beim Hinzufügen in den Warenkorb werden für Firmenkunden, falls vorhanden, die Brutto-Formulare bevorzugt (Mapping `webflowFormMapBrutto`)
-- Fallback auf Standard-SKUs, falls Brutto-SKU nicht vorhanden ist
-#### Kompatibilitätsprüfung (Privat vs. Gewerbe)
-- Beim Laden des Warenkorbs und bei jeder Änderung (MutationObserver auf `.w-commerce-commercecartlist`) prüft `customer-type-popup.js`, ob alle Cart-Items zum aktuellen Kundentyp passen.
-- Falls ein Produkt nicht passt, wird es automatisch entfernt und das korrekte Partnerprodukt gemäß `PRODUCT_MAP`/`PRODUCT_MAP_BRUTTO` in gleicher Menge wieder hinzugefügt.
-- Fallback: Existiert kein Mapping, bleibt das Produkt im Warenkorb und es wird eine Warnung in der Konsole ausgegeben.
-- Initiales Triggering im Popup beim `init()`; nutzt bei Verfügbarkeit `window.solarGrid` für den stabilen Add-Flow.
-- Hinweis: Segmentierte CMS-Suche wird beim Wechsel des Kundentyps automatisch neu angewendet (Re-Filter), sodass jeweils nur die Produkte des ausgewählten Segments sichtbar sind.
-
-#### Fullpage‑Warenkorb (neue Seite/Embed)
-- Dateien: `fullpage-cart.html`, `fullpage-cart.css`, `fullpage-cart.js` (optional: `fullpage-cart.min.js`)
-- Einbindung: In Webflow als Code‑Embed. Der Webflow‑Cart bleibt auf der Seite vorhanden, ist jedoch komplett verborgen und dient als „Motor“ für den Fullpage‑Warenkorb.
-- Verhalten:
-  - Lesen: Items werden aus `.w-commerce-commercecartlist` gespiegelt (Name, Bild, Menge).
-  - Ändern: UI‑Aktionen lösen Klicks auf versteckte Add‑to‑Cart‑Formulare aus (Mengenänderung, Entfernen, Leeren, Checkout‑Clickthrough). DOM‑Änderungen werden via `MutationObserver` erkannt.
-  - Preise: Anzeige immer netto; Hinweistext je Kundentyp (Privat/Firma) gemäß Popup‑Auswahl.
-  - Kundentyp: `CartCompatibility.schedule()` wird beim Start aufgerufen; inkompatible Artikel werden entfernt und optional ausgewiesen.
-  - Kein „Aus Konfigurator übernehmen“ auf dieser Seite (nicht vorgesehen).
+### **Warenkorb (Shopify)**
+- Warenkorb-Logik vollständig über Shopify Cart API
+- Produkte werden via `SHOPIFY_VARIANT_MAP` identifiziert
+- Kundentyp wird als Cart-Attribut übergeben
 
 ### **Analytics-Nutzung:**
 - **Zweck:** Tool-Optimierung basierend auf Nutzerverhalten
@@ -257,12 +239,13 @@ VE = {
 - **Sofortiges Feedback** bei Änderungen
 
 ### **Code-Struktur:**
-- **Dual-File-System:** `script.js` (Dev) + `script.min.js` (Prod)
-- **Background-Worker:** Für Performance bei großen Berechnungen
-- **Modulare Klassen:** SmartConfigParser, CalculationManager, etc.
+- **Hauptdatei:** `script-new.js` (Dev) + `script-new.min.js` (Prod)
+- **Background-Worker:** `calculation-worker.js` für Performance bei großen Berechnungen
+- **Modulare Klassen:** SmartConfigParser, CalculationManager, SolarGrid, etc.
+- **Integriert:** Kundentyp-Management (Privat/Gewerbe), Shopify Cart API
 
 ### **Qualitätssicherung:**
-- **Beide Dateien** müssen synchron gehalten werden
+- **Minifizierung:** Nach Änderungen `npx terser script-new.js -o script-new.min.js -c -m` ausführen
 - **Umfassende Tests** für Smart Config Patterns
 - **Responsive Design** für verschiedene Geräte
 
@@ -303,10 +286,6 @@ Hinweis: Der Verteilungsmodus `gleichmäßig` ist deaktiviert. Bitte verwenden S
 - Grid-Übersicht mit Bild der aktuellen Konfiguration
 - Produktliste auf separater Seite, Zusatzprodukte ggf. auf eigener Sammelseite
 
-#### Änderungen 2025-10-13
-- PDF-Logo aktualisiert: Verwendung des Logos unter `https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68a715060ec3ecf5508ca480_Element%201.svg` für Header und Footer.
-- Orientierungsindikator: In der Grid-Visualisierung (UI und PDF) wird die aktuelle Ausrichtung als deutliches Badge angezeigt ("HORIZONTAL" oder "VERTIKAL"). Zellgrößen und Seitenverhältnis bleiben unverändert.
-
 ---
 
 ## 📈 Zukünftige Entwicklung
@@ -330,11 +309,11 @@ Hinweis: Der Verteilungsmodus `gleichmäßig` ist deaktiviert. Bitte verwenden S
 - **Smart Config erkennt neue Begriffe nicht:** Prüfe Regex in `SmartConfigParser.patterns`
 - **Checkbox-Zustand inkorrekt:** Vergleiche parseCheckboxCombinations Logik
 - **Performance-Issues:** Prüfe Web Worker Funktionalität
+- **Shopify-Fehler:** Prüfe `SHOPIFY_VARIANT_MAP` auf gültige Variant-IDs
 
 ### **Entwickler-Tools:**
-- **Console-Logging** für Smart Config Debugging
+- **Console-Logging** für Smart Config und Shopify Debugging
 - **Test-Dateien** für isolierte Feature-Tests
-- **Dual-File-Validation** für Code-Synchronisation
 
 ---
 
@@ -355,6 +334,11 @@ Hinweis: Der Verteilungsmodus `gleichmäßig` ist deaktiviert. Bitte verwenden S
 - Fallback für synchrone Berechnungen
 - Performance-Optimierung für große Grids
 
+### **Shopify Integration**
+- `addToShopifyCart()` / `addAllToShopifyCart()` – nutzen `window.solarShopifyStorefront` (Storefront API)
+- `shopifyStorefrontCart.js` – GraphQL über Proxy `SOLAR_STOREFRONT_PROXY` (Standard `/api/shopify-storefront`)
+- `SHOPIFY_VARIANT_MAP` – Mapping von Produkt-Keys zu Variant-IDs (numerisch oder GID)
+
 ---
 
 *Diese Dokumentation wird kontinuierlich aktualisiert basierend auf Nutzerfeedback und Entwicklungsfortschritt.*
@@ -367,14 +351,9 @@ Hinweis: Der Verteilungsmodus `gleichmäßig` ist deaktiviert. Bitte verwenden S
 - Änderungen an Architektur/State-Handling in `ARCHITECTURE_GUIDELINES` dokumentieren.
 - Dev/Prod-Regeln in `AGENT_DEVELOPMENT_GUIDE` aktuell halten.
 
-## Changelog (Preislogik)
-
-- Neu: Preis- und VE-Update für alle Kernprodukte gemäß aktueller Tabelle.
-- Neu: Staffelpreise pro Produkt (mengenbasiert). Sobald eine Staffelmengen-Schwelle erreicht ist, wird der VE-Preis dynamisch aus dem Stückpreis der Staffel × VE berechnet. Beim Unterschreiten der Schwelle wird automatisch wieder der Basispreis verwendet.
-
 ## Staffelpreis-Logik (Kurz)
 
-- Quelle: `script.js` → `TIER_PRICING` (pro Produkt Liste aus `{ minPieces, pricePerPiece | packPrice }`).
+- Quelle: `script-new.js` → `TIER_PRICING` (pro Produkt Liste aus `{ minPieces, pricePerPiece | packPrice }`).
 - Berechnung: `getPackPriceForQuantity(productKey, requiredPieces)` ermittelt den wirksamen Preis je VE.
 - Verwendung: Alle Preisstellen rufen nun diese Funktion auf (PDF, Sidebar-Listen, Snapshots, Zusatzprodukte).
 
@@ -385,4 +364,4 @@ Hinweis: Der Verteilungsmodus `gleichmäßig` ist deaktiviert. Bitte verwenden S
   - 40× `Schiene_240_cm` → 11,59 € pro Stück (VE=1).
   - 300× `Mittelklemmen` → 0,95 € pro Stück, VE=50 → Packpreis 47,50 €.
   - 36× `Solarmodul` → 55,90 € pro Stück.
-  - Kundentyp: LocalStorage löschen, Seite laden → Popup erscheint. „Privatkunde“ → Nettopreise, Standard-IDs. „Firmenkunde“ → Bruttopreise (×1,19), Zusatzprodukte nutzen Brutto-IDs (falls vorhanden). Nach 48h → Popup erscheint wieder.
+  - Kundentyp: LocalStorage löschen, Seite laden. „Privatkunde" → Nettopreise. „Firmenkunde" → Bruttopreise (×1,19).

@@ -67,7 +67,7 @@ function processGroup(len, parts, cellWidth, cellHeight, orientation, options = 
   
   // Verwende die tatsächliche Zellbreite basierend auf Orientierung
   const isVertical = orientation === 'vertical';
-  const actualCellWidth = isVertical ? cellHeight : cellWidth;
+  const actualCellWidth = isVertical ? cellWidth : cellHeight;
   
   const totalLen = len * actualCellWidth;
   const floor360 = Math.floor(totalLen / 360);
@@ -349,7 +349,7 @@ self.addEventListener('message', function(e) {
 // Erdungsband-Berechnung für Worker
 function calculateErdungsband(selection, rows, cols, cellWidth, cellHeight, orientation) {
   const isVertical = orientation === 'vertical';
-  const moduleHeight = isVertical ? cellWidth : cellHeight;
+  const moduleHeight = isVertical ? cellHeight : cellWidth;
   const gap = 2; // 2cm Lücke zwischen Modulen
   
   // Kopiere selection Matrix für Erdungsbandlength-Tracking

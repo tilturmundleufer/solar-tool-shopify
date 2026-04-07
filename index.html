@@ -4,12 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Solar-Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <!-- PDF Generation Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- Modern HTML-to-PDF (bundled: jsPDF+html2canvas) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- jsPDF/html2canvas werden bei PDF-Export nachgeladen (script-new.js: ensureSolarPdfLibs) -->
+  <script>
+    window.SOLAR_STOREFRONT_PROXY = '/api/shopify-storefront';
+    window.SOLAR_USE_STOREFRONT_API = true;
+  </script>
+  <script src="shopifyStorefrontCart.js" defer></script>
+  <script src="script-new.js" defer></script>
 </head>
 <body>
   <!-- Mobile Warning Overlay - Entfernt, da direkte Weiterleitung implementiert -->
@@ -68,198 +73,185 @@
   </div>
 
   <div class="planner">
-    <div class="main-area">
-      <div class="header">
-        <div class="controls controls--horizontal">
-          <div class="aspect-ratio-controls">
-            <span>Grid-Konfiguration</span>
-          </div>
-        </div>
-      </div>
-      <div class="frame">
-        <!-- Global Loading Overlay -->
-        <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
-          <div class="loading-box">
-            <div class="loading-spinner" aria-hidden="true"></div>
-            <div class="loading-text" id="loading-text">Vorgang läuft… bitte warten</div>
-          </div>
-        </div>
-        <div class="grid-container">
-          <div class="canvas">
-            <div class="grid-wrapper">
-              <!-- Orientation Buttons -->
-              <div class="orientation-controls">
-                <button id="orient-h" class="orientation-btn" title="Horizontal">
-                  <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986b25cb7830eadb820_Horizontal.png" alt="Horizontal" style="width: 16px; height: 16px;">
-                  <span class="orientation-text">Horizontal</span>
-                </button>
-                <button id="orient-v" class="orientation-btn active" title="Vertikal">
-                  <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936987d61b2142ecfa31f3_Vertical.png" alt="Vertikal" style="width: 16px; height: 16px;">
-                  <span class="orientation-text">Vertikal</span>
-                </button>
-              </div>
-              <div class="grid-overflow">
-                <div id="grid" class="grid"></div>
-              </div>
-              <!-- Preview Grid (wird bei Preview-Modus angezeigt) -->
-              <div id="preview-grid" class="preview-grid" style="display: none;"></div>
-            </div>
-          </div>
-          <div class="expansion-controls">
-            <div class="side-controls top-controls">
-              <div class="button-group-horizontal">
-                <button class="expand-btn plus-btn" data-dir="top">+</button>
-                <button class="expand-btn minus-btn" data-dir="top">−</button>
-              </div>
-            </div>
-            <div class="side-controls left-controls">
-              <div class="button-group-vertical">
-                <button class="expand-btn plus-btn" data-dir="left">+</button>
-                <button class="expand-btn minus-btn" data-dir="left">−</button>
-              </div>
-            </div>
-            <div class="side-controls right-controls">
-              <div class="button-group-vertical">
-                <button class="expand-btn plus-btn" data-dir="right">+</button>
-                <button class="expand-btn minus-btn" data-dir="right">−</button>
-              </div>
-            </div>
-            <div class="side-controls bottom-controls">
-              <div class="button-group-horizontal">
-                <button class="expand-btn plus-btn" data-dir="bottom">+</button>
-                <button class="expand-btn minus-btn" data-dir="bottom">−</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="toast" class="toast hidden"></div>
-      <!-- Produktliste und Summary aus solar-tool -->
-      <div class="produktliste-holder" style="display:none">
-        <div id="produktliste"></div>
-      </div>
-      <div id="summary-list-holder">
-        <div id="summary-list"></div>
-        <button id="summary-add-cart-btn">Gesamte Auswahl in den Warenkorb</button>
-      </div>
-      <div class="config-list-holder">
-        <div id="config-list"></div>
-      </div>
-      <div class="button-bar">
-        <button id="save-config-btn">Konfiguration speichern</button>
-        <button id="add-to-cart-btn">Aktuelle Konfiguration zum Warenkorb</button>
-        <button id="summary-add-cart-btn">Alle Konfigurationen zum Warenkorb</button>
-        <button id="continue-later-btn">Alle Konfigurationen löschen</button>
-      </div>
-      
+    <div class="configurator-grid" id="solar-configurator">
+
+      <!-- Oben links: Eingaben -->
+      <section class="config-card config-card--inputs" aria-label="Konfiguration">
         <div class="setup-container">
-          <div class="setup-row">
-            <label>Modultyp:<select id="module-select">
-              <option value="" disabled selected hidden>Modultyp auswählen</option>
-              <option value="custom">Benutzerdefiniert</option>
-              <option value="ulica-500">Ulica Black Jade-Flow 500W</option>
-              <option value="ulica-450">Ulica Black Jade-Flow 450W</option>
-              <option value="trina-vertex-s-plus">Trina Vertex S+</option>
-              <option value="aiko-neostar-3s-plus">Aiko Neostar 3S+</option>
-            </select></label>
+          <div class="setup-fields-box">
+            <div class="setup-row setup-row--full">
+              <label class="field-label" for="module-select">Modultyp:</label>
+              <select id="module-select">
+                <option value="" disabled selected hidden>Modultyp auswählen</option>
+                <option value="custom">Benutzerdefiniert</option>
+                <option value="ulica-500">Ulica Black Jade-Flow 500W</option>
+                <option value="ulica-450">Ulica Black Jade-Flow 450W</option>
+                <option value="trina-vertex-s-plus">Trina Vertex S+</option>
+                <option value="aiko-neostar-3s-plus">Aiko Neostar 3S+</option>
+              </select>
+            </div>
+            <div class="setup-row setup-row--dims">
+              <div class="field-group">
+                <label class="field-label" for="width-input">Breite (in cm):</label>
+                <input type="number" id="width-input" min="0.1" step="0.1" value="113" />
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="height-input">Höhe (in cm):</label>
+                <input type="number" id="height-input" min="0.1" step="0.1" value="176" />
+              </div>
+            </div>
           </div>
-          <div class="setup-row">
-                      <label>Breite (in cm):<input type="number" id="width-input" min="0.1" step="0.1" value="176"></label>
-          <label>Höhe (in cm):<input type="number" id="height-input" min="0.1" step="0.1" value="113"></label>
-          </div>
-          <div class="setup-row">
-            
-          </div>
-          <div class="setup-row">
-            <button id="reset-btn" class="btn">Zurücksetzen</button>
+          <div class="setup-toolbar" role="group" aria-label="Aktionen und Zubehör">
+            <div class="module-dropdown setup-toolbar-dropdown">
+              <div class="module-dropdown-header">
+                <span class="module-dropdown-title">Module hinzufügen</span>
+                <span class="config-chevron config-chevron--down" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </div>
+              <div class="module-dropdown-content">
+                <label class="module-checkbox">
+                  <input type="checkbox" id="include-modules" />
+                  <span class="checkbox-label">450W Module</span>
+                </label>
+                <label class="module-checkbox">
+                  <input type="checkbox" id="ulica-module" />
+                  <span class="checkbox-label">500W Module</span>
+                </label>
+              </div>
+            </div>
+            <div class="module-dropdown setup-toolbar-dropdown">
+              <div class="module-dropdown-header">
+                <span class="module-dropdown-title">Optimierer hinzufügen</span>
+                <span class="config-chevron config-chevron--down" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </div>
+              <div class="module-dropdown-content">
+                <label class="checkbox-item module-checkbox">
+                  <input type="checkbox" id="huawei-opti" />
+                  <span class="checkbox-label">Huawei Optimierer 600W</span>
+                </label>
+                <label class="checkbox-item module-checkbox">
+                  <input type="checkbox" id="brc-opti" />
+                  <span class="checkbox-label">BRC M600M Optimierer</span>
+                </label>
+                <input type="number" id="opti-qty" min="1" value="1" class="opti-qty-input" />
+              </div>
+            </div>
+            <label class="checkbox-item checkbox-pill">
+              <input type="checkbox" id="erdungsband" />
+              <span>Erdungsband</span>
+            </label>
+            <label class="checkbox-item checkbox-pill">
+              <input type="checkbox" id="mc4" />
+              <span>MC4 Stecker</span>
+            </label>
+            <label class="checkbox-item checkbox-pill">
+              <input type="checkbox" id="solarkabel" />
+              <span>Solarkabel</span>
+            </label>
+            <label class="checkbox-item checkbox-pill">
+              <input type="checkbox" id="holz" />
+              <span>Holzunterleger</span>
+            </label>
+            <label class="checkbox-item checkbox-pill">
+              <input type="checkbox" id="kabelbinder" />
+              <span>Kabelbinder</span>
+            </label>
+            <label class="checkbox-item checkbox-pill">
+              <input type="checkbox" id="quetschkabelschuhe" />
+              <span>Ringkabelschuhe</span>
+            </label>
+            <button type="button" id="reset-btn" class="btn btn-reset">Zurücksetzen</button>
           </div>
         </div>
+      </section>
 
-      <!-- Benutzeranleitung für neue Features -->
-      <div class="usage-tips">
-        <div class="tip">
-          <strong>🖱️ Drag & Drop:</strong> Ziehen Sie mit der Maus über Zellen für Bereichsauswahl
-        </div>
-        <div class="tip">
-          <strong>🔲 Rechteck-Tool:</strong> Klicken Sie auf eine Zelle, dann Shift+Klick auf eine andere für Rechteck-Selektion
-        </div>
-      </div>
-
-      <!-- Checkboxen oberhalb des Grids -->
-      <div class="grid-checkboxes">
-        <div class="checkbox-row">
-          <!-- Module Dropdown -->
-          <div class="module-dropdown">
-            <div class="module-dropdown-header">
-              <span class="module-dropdown-title">Module hinzufügen</span>
-              <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986bd441749c46190e8_ChevronRight.png" alt="Dropdown" class="module-dropdown-arrow" style="width: 10px; height: 16px;">
-            </div>
-            <div class="module-dropdown-content">
-              <label class="module-checkbox">
-                <input type="checkbox" id="include-modules">
-                <span class="checkbox-label">Solarmodul</span>
-              </label>
-              <label class="module-checkbox">
-                <input type="checkbox" id="ulica-module">
-                <span class="checkbox-label">Ulica Black Jade-Flow 500W</span>
-              </label>
-            </div>
-          </div>
-          
-          <label class="checkbox-item">
-            <input type="checkbox" id="mc4">
-            <span>MC4 Stecker</span>
-          </label>
-          <label class="checkbox-item">
-            <input type="checkbox" id="solarkabel">
-            <span>Solarkabel</span>
-          </label>
-          <label class="checkbox-item">
-            <input type="checkbox" id="holz">
-            <span>Holzunterleger</span>
-          </label>
-          <label class="checkbox-item">
-            <input type="checkbox" id="quetschkabelschuhe">
-            <span>Ringkabelschuhe</span>
-          </label>
-          <label class="checkbox-item">
-            <input type="checkbox" id="kabelbinder">
-            <span>Kabelbinder</span>
-          </label>
-          <label class="checkbox-item">
-            <input type="checkbox" id="erdungsband">
-            <span>Erdungsband</span>
-          </label>
-          <!-- Optimierer Dropdown in der Checkbox-Leiste -->
-          <div class="module-dropdown">
-            <div class="module-dropdown-header">
-              <span class="module-dropdown-title">Optimierer hinzufügen</span>
-              <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986bd441749c46190e8_ChevronRight.png" alt="Dropdown" class="module-dropdown-arrow" style="width: 8px; height: 12px;">
-            </div>
-            <div class="module-dropdown-content">
-              <label class="checkbox-item">
-                <input type="checkbox" id="huawei-opti">
-                <span class="checkbox-label">Huawei Optimierer 600W</span>
-              </label>
-              <label class="checkbox-item">
-                <input type="checkbox" id="brc-opti">
-                <span class="checkbox-label">BRC M600M Optimierer</span>
-              </label>
-              <input type="number" id="opti-qty" min="1" value="1" style="width:80px; margin-left:8px; display:none;" />
-            </div>
+      <!-- Oben rechts: Hilfe -->
+      <section class="config-card config-card--help" aria-label="Hilfe und Kontakt">
+        <h2 class="help-card-title">Sie haben Fragen?</h2>
+        <p class="help-card-text">Unser Team berät Sie gern zu Modulen, Montage und Zubehör – telefonisch oder per Video.</p>
+        <div class="help-card-contact">
+          <span class="help-avatar" aria-hidden="true">UK</span>
+          <div class="help-phone-block">
+            <svg class="help-phone-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <a class="help-phone" href="tel:+4989123456789">+49 89 123 456 789</a>
           </div>
         </div>
-      </div>
-    </div>
+        <a class="btn btn-video" href="#" id="help-video-btn">Jetzt Erklärvideo anschauen</a>
+      </section>
 
-    <!-- Sidebar für Konfigurationen -->
-    <div id="config-sidebar" class="config-sidebar">
+      <!-- Unten links: Grid-Editor -->
+      <section class="config-card config-card--canvas" aria-label="Modul-Editor">
+        <div class="frame frame--editor">
+          <div id="loading-overlay" class="loading-overlay loading-overlay--in-card" aria-hidden="true">
+            <div class="loading-box">
+              <div class="loading-spinner" aria-hidden="true"></div>
+              <div class="loading-text" id="loading-text">Vorgang läuft… bitte warten</div>
+            </div>
+          </div>
+          <div class="grid-container">
+            <div class="canvas">
+              <div class="grid-wrapper">
+                <div class="orientation-controls">
+                  <button type="button" class="orientation-chain" aria-label="Verknüpfung" title="Verknüpfung">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  </button>
+                  <!-- IDs orient-h / orient-v sind historisch; Klick-Logik unverändert, Beschriftung = Icon -->
+                  <button type="button" id="orient-h" class="orientation-btn" title="Horizontal">
+                    <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936987d61b2142ecfa31f3_Vertical.png" alt="Horizontal" width="16" height="16" />
+                    <span class="orientation-text">Horizontal</span>
+                  </button>
+                  <button type="button" id="orient-v" class="orientation-btn active" title="Vertikal">
+                    <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986b25cb7830eadb820_Horizontal.png" alt="Vertikal" width="16" height="16" />
+                    <span class="orientation-text">Vertikal</span>
+                  </button>
+                </div>
+                <div class="grid-overflow">
+                  <div id="grid" class="grid"></div>
+                </div>
+                <div id="preview-grid" class="preview-grid" style="display: none;"></div>
+              </div>
+            </div>
+            <div class="expansion-controls">
+              <div class="side-controls top-controls">
+                <div class="button-group-horizontal">
+                  <button type="button" class="expand-btn plus-btn" data-dir="top">+</button>
+                  <button type="button" class="expand-btn minus-btn" data-dir="top">−</button>
+                </div>
+              </div>
+              <div class="side-controls left-controls">
+                <div class="button-group-vertical">
+                  <button type="button" class="expand-btn plus-btn" data-dir="left">+</button>
+                  <button type="button" class="expand-btn minus-btn" data-dir="left">−</button>
+                </div>
+              </div>
+              <div class="side-controls right-controls">
+                <div class="button-group-vertical">
+                  <button type="button" class="expand-btn plus-btn" data-dir="right">+</button>
+                  <button type="button" class="expand-btn minus-btn" data-dir="right">−</button>
+                </div>
+              </div>
+              <div class="side-controls bottom-controls">
+                <div class="button-group-horizontal">
+                  <button type="button" class="expand-btn plus-btn" data-dir="bottom">+</button>
+                  <button type="button" class="expand-btn minus-btn" data-dir="bottom">−</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Unten rechts: Übersicht / Warenkorb -->
+      <div id="config-sidebar" class="config-sidebar config-card config-card--summary">
       <!-- Detail-Ansicht einer Konfiguration -->
       <div id="config-detail-view" class="config-detail-view active">
         <!-- Header mit Zurück-Button und Auto-Save -->
         <div class="detail-header">
-          <button id="back-to-overview" class="back-btn">
-            <span>◀</span> Zur Übersicht
+          <button type="button" id="back-to-overview" class="back-btn">
+            <span class="back-chevron" aria-hidden="true">&lt;</span> Zur Übersicht
           </button>
           <div id="auto-save-indicator" class="auto-save-indicator hidden">
             <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986891ec6c5e5224ced_AutmoatischSpeichern.png" alt="Speichern" class="save-icon" style="width: 16px; height: 16px;">
@@ -272,36 +264,39 @@
           <h2 id="current-config-title">Konfiguration #1</h2>
           <div class="config-actions">
             <button id="edit-config-name" class="icon-btn" title="Name bearbeiten">
-              <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/689369877a18221f25a4b743_Pen.png" alt="Bearbeiten" style="width: 16px; height: 16px;">
+              <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/689369877a18221f25a4b743_Pen.png" alt="Bearbeiten" width="24" height="24">
             </button>
             <button id="delete-current-config" class="icon-btn delete" title="Löschen">
-              <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986121f0519d394183f_Delete.png" alt="Löschen" style="width: 16px; height: 16px;">
+              <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986121f0519d394183f_Delete.png" alt="Löschen" width="24" height="24">
             </button>
           </div>
         </div>
 
-        <!-- Produktliste -->
+        <!-- Produktliste (nur Liste scrollt, Label fix) -->
         <div class="product-section">
-          <h4>Produktliste</h4>
-          <div id="produktliste" class="produktliste"></div>
+          <h4 class="product-section-label">Produktliste</h4>
+          <div class="produktliste-scroll">
+            <div id="produktliste" class="produktliste"></div>
+          </div>
         </div>
 
         <!-- Gesamt-Preis -->
         <div class="total-section">
           <div class="total-line">
             <span class="total-label">Gesamt</span>
-            <span id="current-total-price" class="total-price">0,00€</span>
+            <span id="current-total-price" class="total-price">0,00 €</span>
           </div>
           <div class="total-subtitle">exkl. MwSt</div>
+          <p class="total-disclaimer total-disclaimer--center">Der sichtbare Preis ist eine Vorberechnung; im Warenkorb kann der Preis durch Mindestmengen oder Rabatte abweichen.</p>
         </div>
 
         <!-- Action Buttons -->
         <div class="detail-buttons">
-          <button id="next-config-btn" class="btn outline">
-            <span>+</span> Nächste Konfiguration
+          <button type="button" id="next-config-btn" class="btn outline">
+            <span aria-hidden="true">+</span> Nächste Konfiguration
           </button>
-          <button id="express-checkout-btn" class="btn primary">
-            <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986aedee4ccf01541f2_Cart.png" alt="Warenkorb" style="width: 16px; height: 16px; margin-right: 8px;"> Express-Checkout
+          <button type="button" id="express-checkout-btn" class="btn primary">
+            <img src="https://cdn.prod.website-files.com/68498852db79a6c114f111ef/68936986aedee4ccf01541f2_Cart.png" alt="" width="18" height="18" class="btn-cart-icon" /> Gesamte Auswahl in den Warenkorb
           </button>
         </div>
       </div>
@@ -313,30 +308,32 @@
         </div>
         
         <div class="overview-content">
-          <div id="config-list" class="config-list"></div>
-          
-          <!-- Add Config Button -->
-          <button id="add-config-btn" class="config-item add-config-btn" title="Neue Konfiguration hinzufügen">
-            <div class="config-item-content">
-              <div class="config-item-info">
-                <span class="config-name">+</span>
+          <!-- Nur Konfigurationen + „+“ scrollen bei vielen Einträgen -->
+          <div class="overview-configs-scroll">
+            <div id="config-list" class="config-list"></div>
+            <button id="add-config-btn" class="config-item add-config-btn" title="Neue Konfiguration hinzufügen">
+              <div class="config-item-content">
+                <div class="config-item-info">
+                  <span class="config-name">+</span>
+                </div>
               </div>
-            </div>
-          </button>
-          
-          <!-- Gesamtpreis aller Konfigurationen -->
-          <div class="total-section">
-            <div class="total-line">
-              <span class="total-label">Gesamt</span>
-              <span id="overview-total-price" class="total-price">0,00€</span>
-            </div>
-            <div class="total-subtitle">exkl. MwSt</div>
+            </button>
           </div>
-          
-          <!-- Zusatzprodukte -->
+
+          <!-- Zusatzprodukte wachsen mit Inhalt, kein eigener Scroll -->
           <div class="additional-products-section">
             <h4>Zusatzprodukte</h4>
             <div id="additional-products-list" class="additional-products-list"></div>
+          </div>
+
+          <!-- Gesamtpreis aller Konfigurationen -->
+          <div class="total-section total-section--overview">
+            <div class="total-line">
+              <span class="total-label">Gesamt</span>
+              <span id="overview-total-price" class="total-price">0,00 €</span>
+            </div>
+            <div class="total-subtitle">exkl. MwSt</div>
+            <p class="total-disclaimer total-disclaimer--center">Der sichtbare Preis ist eine Vorberechnung; im Warenkorb kann der Preis durch Mindestmengen oder Rabatte abweichen.</p>
           </div>
         </div>
 
@@ -352,7 +349,16 @@
       </div>
     </div>
 
+    </div>
 
+    <div id="toast" class="toast hidden"></div>
+
+    <div class="visually-hidden" aria-hidden="true">
+      <div id="summary-list"></div>
+      <button type="button" id="save-config-btn">Konfiguration speichern</button>
+      <button type="button" id="add-to-cart-btn">Aktuelle Konfiguration zum Warenkorb</button>
+      <button type="button" id="summary-add-cart-btn">Alle Konfigurationen zum Warenkorb</button>
+    </div>
   </div>
 
   <!-- Hidden A4 PDF Template Root (html2pdf.js will capture this) -->
@@ -422,6 +428,5 @@
       </footer>
     </div>
   </div>
-  <script src="script.js?v=1.0.4"></script>
 </body>
 </html>
