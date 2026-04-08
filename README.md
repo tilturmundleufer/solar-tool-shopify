@@ -13,7 +13,7 @@ Eine Web-Anwendung zur einfachen Konfiguration und Bestellung von Solaranlagen-K
 - `calculation-worker.js` - Web Worker für Background-Berechnungen
 - `style.css` - Styling
 - `index.html` - Hauptseite
-- `docs/STOREFRONT_SETUP.md` - Custom App + Env-Variablen
+- `docs/STOREFRONT_SETUP.md` - Headless Storefront-Token + Env-Variablen
 - `docs/THEME_BRIDGE.md` - Link/iframe vom Shopify-Theme zur App
 
 ## 🛒 Shopify-Integration (Headless / Storefront API)
@@ -22,8 +22,8 @@ Warenkorb läuft über die **Shopify Storefront API** (GraphQL), nicht mehr übe
 
 ### Konfiguration
 
-1. **Custom App** mit Storefront API und Token – siehe [docs/STOREFRONT_SETUP.md](docs/STOREFRONT_SETUP.md)
-2. **Vercel:** `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN`, optional `SHOPIFY_STOREFRONT_API_VERSION` – siehe [.env.example](.env.example)
+1. **Headless-Kanal** im Shopify Admin + **private access token** – siehe [docs/STOREFRONT_SETUP.md](docs/STOREFRONT_SETUP.md) und [docs/SHOPIFY_SETUP_ANLEITUNG.md](docs/SHOPIFY_SETUP_ANLEITUNG.md)
+2. **Vercel:** `SHOPIFY_STORE_DOMAIN`, **`SHOPIFY_STOREFRONT_PRIVATE_TOKEN`** (empfohlen), optional `SHOPIFY_STOREFRONT_ACCESS_TOKEN` nur für Legacy-Public-Token – siehe [.env.example](.env.example)
 3. **Variant-IDs** in `script-new.js` → `SHOPIFY_VARIANT_MAP` (numerische IDs oder GIDs)
 4. **Minifizieren:**  
    `npx terser script-new.js -o script-new.min.js -c -m`  

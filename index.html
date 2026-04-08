@@ -10,7 +10,17 @@
   <link rel="stylesheet" href="style.css" />
   <!-- jsPDF/html2canvas werden bei PDF-Export nachgeladen (script-new.js: ensureSolarPdfLibs) -->
   <script>
-    window.SOLAR_STOREFRONT_PROXY = '/api/shopify-storefront';
+    (function () {
+      if (window.SOLAR_STOREFRONT_PROXY) return;
+      var host = location.hostname;
+      var onVercelOrLocal =
+        host === 'localhost' ||
+        host === '127.0.0.1' ||
+        host.endsWith('.vercel.app');
+      window.SOLAR_STOREFRONT_PROXY = onVercelOrLocal
+        ? '/api/shopify-storefront'
+        : 'https://solar-tool-shopify.vercel.app/api/shopify-storefront';
+    })();
     window.SOLAR_USE_STOREFRONT_API = true;
   </script>
   <script src="shopifyStorefrontCart.js" defer></script>

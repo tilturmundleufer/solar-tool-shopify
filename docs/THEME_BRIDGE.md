@@ -2,6 +2,18 @@
 
 Der Konfigurator läuft auf einer **eigenen URL** (z. B. Vercel). Die Shop-Theme-Seite soll nur verlinken oder einbetten.
 
+## Storefront-Proxy & CORS (Warenkorb)
+
+Wenn der Konfigurator **auf einer Shopify-Seite** läuft (z. B. `https://schneider-unterkonstruktion-2.myshopify.com/pages/solar-konfigurator`) und **nicht** in einem iframe unter `*.vercel.app`, muss die API **gegen Vercel** gehen. In `index.html` ist dafür die Produktions-URL **`https://solar-tool-shopify.vercel.app/api/shopify-storefront`** eingetragen, sobald die Seite **nicht** auf `localhost`, `127.0.0.1` oder `*.vercel.app` geladen wird.
+
+Auf **Vercel** in den Umgebungsvariablen **`SOLAR_ALLOWED_ORIGIN`** die **exakte** Origin der Shop-Seite eintragen (ggf. kommagetrennt mehrere), z. B.:
+
+`https://schneider-unterkonstruktion-2.myshopify.com`
+
+Ohne diesen Eintrag blockiert der Browser die Anfragen (CORS). Eigene Domain (z. B. `www.…`) zusätzlich auflisten, falls die Seite darüber erreichbar ist.
+
+Vor dem Laden der Skripte kann man den Proxy überschreiben: `window.SOLAR_STOREFRONT_PROXY = '…';`
+
 ## Variante A: Link (empfohlen, einfach)
 
 In **Onlineshop → Seiten** eine Seite „Konfigurator“ anlegen, Inhalt:

@@ -1,7 +1,8 @@
 {
   "scripts": {
     "minify": "terser script-new.js -o script-new.min.js -c -m && terser shopifyStorefrontCart.js -o shopifyStorefrontCart.min.js -c -m",
-    "serve": "npx --yes serve . -l 3333"
+    "serve": "npx --yes serve . -l 3333",
+    "dev": "vercel dev"
   },
   "devDependencies": {
     "terser": "^5.43.1"

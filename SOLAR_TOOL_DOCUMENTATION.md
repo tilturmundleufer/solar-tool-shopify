@@ -103,7 +103,7 @@ Das Solar-Tool ist eine Web-Anwendung zur einfachen Konfiguration und Bestellung
 
 ### **Shopify Konfiguration:**
 - `SHOPIFY_VARIANT_MAP` enthält die Shopify Variant-IDs für alle Produkte.
-- Vercel-Umgebung: `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN`.
+- Vercel-Umgebung: `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` (empfohlen, Headless) oder `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (Legacy).
 - Bei fehlender Konfiguration (Platzhalter-IDs) zeigt das Tool entsprechende Fehlermeldungen.
 
 ### **Zusätzliche Integrationen:**

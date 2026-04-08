@@ -32,7 +32,14 @@
       return {};
     });
     if (!r.ok) {
-      throw new Error(json.error || json.message || 'Storefront HTTP ' + r.status);
+      if (r.status === 404) {
+        throw new Error(
+          'Storefront-Proxy nicht gefunden (404). Lokal: Projekt mit `vercel dev` starten (nicht nur `serve`). ' +
+            'Im Shopify-Theme: window.SOLAR_STOREFRONT_PROXY auf die volle URL eures Deployments setzen, z. B. https://…vercel.app/api/shopify-storefront'
+        );
+      }
+      var hint = json.hint ? ' ' + json.hint : '';
+      throw new Error((json.error || json.message || 'Storefront HTTP ' + r.status) + hint);
     }
     if (json.errors && json.errors.length) {
       var msg = json.errors.map(function (e) {

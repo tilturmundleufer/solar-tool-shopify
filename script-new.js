@@ -2633,13 +2633,13 @@
             
             newCell.classList.toggle('selected');
             this.solarGrid.trackInteraction();
+            if (this.solarGrid.currentConfig !== null) {
+              this.solarGrid.updateConfig();
+            }
             this.solarGrid.buildList();
             this.solarGrid.updateSummaryOnChange();
             
-            // Update config-list und overview wenn eine Konfiguration ausgewählt ist
             if (this.solarGrid.currentConfig !== null) {
-              // Speichere die Konfiguration automatisch
-              this.solarGrid.updateConfig();
               this.solarGrid.updateConfigList();
             }
           });
@@ -2675,6 +2675,9 @@
           }
         }
   
+        if (this.solarGrid.currentConfig !== null) {
+          this.solarGrid.updateConfig();
+        }
         this.solarGrid.buildGrid();
         this.solarGrid.buildList();
         this.solarGrid.updateSummaryOnChange();
@@ -3946,8 +3949,13 @@
                   ? this.configs[this.currentConfig]
                   : null;
               if (cfg) {
+                // Live-Grid nutzt immer this.selection (nach loadConfig ist das eine Kopie von cfg;
+                // BulkSelector/Drag aktualisieren nur this.selection — cfg.selection wäre sonst veraltet).
+                const selection = Array.isArray(this.selection)
+                  ? this.selection
+                  : (Array.isArray(cfg.selection) ? cfg.selection : []);
                 return {
-                  selection: Array.isArray(cfg.selection) ? cfg.selection : [],
+                  selection,
                   cols: Number(cfg.cols || this.cols),
                   rows: Number(cfg.rows || this.rows),
                   cellWidth: Number(cfg.cellWidth || parseFloat(this.wIn?.value || '179')),
