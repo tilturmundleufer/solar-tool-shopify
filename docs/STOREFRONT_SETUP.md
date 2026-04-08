@@ -51,9 +51,12 @@ Siehe [storefrontAccessTokenCreate](https://shopify.dev/docs/api/admin-graphql/l
 - `window.SOLAR_STOREFRONT_PROXY` darf **nicht** nur `/api/…` sein, wenn die Seite auf **eurer Shop-Domain** läuft – dort existiert euer Vercel-API-Route nicht. Stattdessen die **volle URL** setzen, z. B. `https://euer-projekt.vercel.app/api/shopify-storefront`.
 - Dieselbe Origin (Shop-URL, ggf. `www`) muss in **`SOLAR_ALLOWED_ORIGIN`** (kommagetrennt) stehen.
 
-### Hinweis: Headless-Warenkorb vs. Theme-Warenkorb
+### Theme-Warenkorb vs. Storefront API (automatisch)
 
-Die Storefront API legt einen **eigenen Cart** an (Checkout-URL). Der **Mini-Warenkorb im Theme** zeigt ihn **nicht automatisch**, solange ihr ihn nicht mit der Storefront-Cart-ID oder einem Redirect zu `checkoutUrl` verbindet. Zum Testen: nach erfolgreichem Hinzufügen in den **Netzwerk-Tab** schauen oder im Admin unter **Bestellungen / Warenkörbe** prüfen, je nach Setup.
+- Läuft die Seite unter **`*.myshopify.com`** (Konfigurator-Skripte auf der Shop-Seite, **kein** iframe von Vercel), nutzt `shopifyStorefrontCart.js` automatisch den **Online-Store-Ajax-Warenkorb** ([`POST /cart/add.js`](https://shopify.dev/docs/api/ajax/reference/cart#post-locale-cart-add-js)) – **derselbe Warenkorb** wie im Theme-Mini-Cart.
+- Läuft die App unter **`*.vercel.app`**, **localhost** o. Ä., wird weiter die **Storefront API** über den Proxy verwendet (eigener Headless-Cart).
+- **Eigene Shop-Domain** (nicht `myshopify.com`): vor den Skripten `window.SOLAR_USE_THEME_CART = true;` setzen, damit `/cart/add.js` genutzt wird.
+- **iframe** mit `src="https://…vercel.app"`: Origin ist Vercel → es bleibt der **Storefront-Cart**; der Theme-Warenkorb füllt sich dann nicht. Lösung: Konfigurator **ohne iframe** auf einer Shopify-Seite einbinden (Assets/Seite im Theme) oder nur Link zum Vercel-Konfigurator.
 
 ## Varianten-IDs
 

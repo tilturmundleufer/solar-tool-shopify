@@ -318,22 +318,23 @@
         </div>
         
         <div class="overview-content">
-          <!-- Nur Konfigurationen + „+“ scrollen bei vielen Einträgen -->
-          <div class="overview-configs-scroll">
-            <div id="config-list" class="config-list"></div>
-            <button id="add-config-btn" class="config-item add-config-btn" title="Neue Konfiguration hinzufügen">
-              <div class="config-item-content">
-                <div class="config-item-info">
-                  <span class="config-name">+</span>
+          <!-- Konfigurationen + Zusatzprodukte in einem Scroll-Block -->
+          <div class="overview-main-scroll">
+            <div class="overview-configs-scroll">
+              <div id="config-list" class="config-list"></div>
+              <button id="add-config-btn" class="config-item add-config-btn" title="Neue Konfiguration hinzufügen">
+                <div class="config-item-content">
+                  <div class="config-item-info">
+                    <span class="config-name">+</span>
+                  </div>
                 </div>
-              </div>
-            </button>
-          </div>
+              </button>
+            </div>
 
-          <!-- Zusatzprodukte wachsen mit Inhalt, kein eigener Scroll -->
-          <div class="additional-products-section">
-            <h4>Zusatzprodukte</h4>
-            <div id="additional-products-list" class="additional-products-list"></div>
+            <div class="additional-products-section">
+              <h4>Zusatzprodukte</h4>
+              <div id="additional-products-list" class="additional-products-list"></div>
+            </div>
           </div>
 
           <!-- Gesamtpreis aller Konfigurationen -->

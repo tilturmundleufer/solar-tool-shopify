@@ -2,17 +2,23 @@
 
 Der Konfigurator läuft auf einer **eigenen URL** (z. B. Vercel). Die Shop-Theme-Seite soll nur verlinken oder einbetten.
 
-## Storefront-Proxy & CORS (Warenkorb)
+## Warenkorb im Theme (Mini-Cart)
 
-Wenn der Konfigurator **auf einer Shopify-Seite** läuft (z. B. `https://schneider-unterkonstruktion-2.myshopify.com/pages/solar-konfigurator`) und **nicht** in einem iframe unter `*.vercel.app`, muss die API **gegen Vercel** gehen. In `index.html` ist dafür die Produktions-URL **`https://solar-tool-shopify.vercel.app/api/shopify-storefront`** eingetragen, sobald die Seite **nicht** auf `localhost`, `127.0.0.1` oder `*.vercel.app` geladen wird.
+Wenn die Konfigurator-JavaScripte auf einer **Shopify-Seite** unter **`*.myshopify.com`** laufen (gleiche Origin wie der Shop), fügt `shopifyStorefrontCart.js` Produkte per **`/cart/add.js`** hinzu – der **Theme-Warenkorb** aktualisiert sich wie bei normalem „In den Warenkorb“.
 
-Auf **Vercel** in den Umgebungsvariablen **`SOLAR_ALLOWED_ORIGIN`** die **exakte** Origin der Shop-Seite eintragen (ggf. kommagetrennt mehrere), z. B.:
+- **Custom Domain** (z. B. `www.…`): vor `shopifyStorefrontCart.js` setzen:  
+  `window.SOLAR_USE_THEME_CART = true;`
+- **Nur** Storefront API (Headless-Cart, kein Theme-Warenkorb):  
+  `window.SOLAR_USE_THEME_CART = false;`
+- **iframe** mit Vercel-URL: Origin ist Vercel → es wird die Storefront API genutzt; der Shop-Mini-Cart bleibt leer. Konfigurator besser **direkt** im Theme (ohne iframe) oder per Link öffnen.
+
+## Storefront-Proxy & CORS (nur Headless-Modus)
+
+Wenn die Seite **nicht** `*.myshopify.com` ist (oder `SOLAR_USE_THEME_CART === false`), geht der Warenkorb über den **Vercel-Proxy** zur Storefront API. Dann muss `SOLAR_STOREFRONT_PROXY` die volle Vercel-URL sein (siehe `index.html`) und auf Vercel **`SOLAR_ALLOWED_ORIGIN`** die Origin der Seite enthalten, z. B.:
 
 `https://schneider-unterkonstruktion-2.myshopify.com`
 
-Ohne diesen Eintrag blockiert der Browser die Anfragen (CORS). Eigene Domain (z. B. `www.…`) zusätzlich auflisten, falls die Seite darüber erreichbar ist.
-
-Vor dem Laden der Skripte kann man den Proxy überschreiben: `window.SOLAR_STOREFRONT_PROXY = '…';`
+Vor dem Laden der Skripte: `window.SOLAR_STOREFRONT_PROXY = '…';`
 
 ## Variante A: Link (empfohlen, einfach)
 

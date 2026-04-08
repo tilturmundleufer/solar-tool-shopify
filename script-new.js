@@ -5281,14 +5281,12 @@
             }
             
             div.innerHTML = `
-              <div class="item-left">
-                <span class="item-quantity">${packs}×</span>
-                <div class="item-info">
-                  <span class="item-name">${PRODUCT_NAME_MAP[k] || k.replace(/_/g,' ')}</span>
-                  <span class="item-ve">${itemVE}</span>
-                </div>
-                <span class="item-details">${itemDetails}</span>
+              <span class="item-quantity">${packs}×</span>
+              <div class="item-info">
+                <span class="item-name">${PRODUCT_NAME_MAP[k] || k.replace(/_/g,' ')}</span>
+                <span class="item-ve">${itemVE}</span>
               </div>
+              <span class="item-details">${itemDetails}</span>
               <span class="item-price">${itemTotal.toFixed(2).replace('.', ',')} €</span>
             `;
             fragment.appendChild(div);

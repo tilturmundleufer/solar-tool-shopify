@@ -1299,14 +1299,12 @@ body {
 }
 
 /*
- * Scroll-Region: flex-Kind muss Höhe begrenzen (nicht mit Inhalt mitwachsen),
- * sonst clippt overflow:hidden am Detail-View und es wirkt wie „nur 4 Zeilen“.
+ * Produktliste: kein height:0 (iframe/WebKit + display:contents sonst „leere“ Liste).
+ * flex:1 + min-height:0 genügt, damit der Bereich scrollt, sobald die Sidebar-Höhe fix ist.
  */
 .config-sidebar.config-card--summary .produktliste-scroll {
-  flex: 1 1 0;
-  flex-basis: 0;
+  flex: 1 1 0%;
   min-height: 0;
-  height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -1431,28 +1429,36 @@ body {
 }
 
 .overview-content {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-height: 0;
   margin-bottom: 14px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
-/* Konfigurationsliste: begrenzter Anteil der festen Sidebar-Höhe, dann Scroll */
-.config-sidebar.config-card--summary .overview-configs-scroll {
-  flex: 0 1 auto;
+/* Konfigurationen + Zusatzprodukte gemeinsam scrollen */
+.overview-main-scroll {
+  flex: 1 1 0%;
   min-height: 0;
-  max-height: min(240px, 32vh);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding-right: 4px;
   margin-right: -2px;
   scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.config-sidebar.config-card--summary .overview-configs-scroll {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1478,12 +1484,16 @@ body {
   flex-shrink: 0;
 }
 
-/* Zusatzprodukte Sektion (Übersicht) – volle Höhe, kein interner Scroll */
+/* Zusatzprodukte in Übersicht: mit Konfigs im .overview-main-scroll */
 .additional-products-section {
   flex: 0 0 auto;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #e5e7eb;
+}
+
+.overview-main-scroll .additional-products-section {
+  margin-top: 8px;
 }
 
 .additional-products-section h4 {
@@ -1915,8 +1925,10 @@ body {
 
 .produkt-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding: 8px 0;
   margin-bottom: 8px;
   color: #000000;
@@ -1928,17 +1940,11 @@ body {
   background: transparent;
 }
 
-.produkt-item .item-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
 .produkt-item .item-info {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
 }
 
 .produkt-item .item-quantity {
@@ -1972,9 +1978,10 @@ body {
   color: #000000;
   text-align: right;
   min-width: 60px;
+  margin-left: auto;
 }
 
-/* Sidebar Produktliste: Zeilenlayout wie Referenz (nur #produktliste, nicht Zusatzprodukte) */
+/* Sidebar Produktliste: 4-Spalten-Grid ohne display:contents (iframe-sicher) */
 .config-sidebar.config-card--summary .produktliste .produkt-item {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
@@ -1983,14 +1990,11 @@ body {
   padding: 14px 0;
   margin-bottom: 0;
   border-bottom: 1px solid #f3f4f6;
+  flex-wrap: unset;
 }
 
 .config-sidebar.config-card--summary .produktliste .produkt-item:last-child {
   border-bottom: none;
-}
-
-.config-sidebar.config-card--summary .produktliste .produkt-item .item-left {
-  display: contents;
 }
 
 .config-sidebar.config-card--summary .produktliste .produkt-item .item-quantity {
@@ -2005,6 +2009,7 @@ body {
 .config-sidebar.config-card--summary .produktliste .produkt-item .item-info {
   grid-column: 2;
   min-width: 0;
+  flex: unset;
 }
 
 .config-sidebar.config-card--summary .produktliste .produkt-item .item-name {
@@ -2038,6 +2043,7 @@ body {
   min-width: 4.5rem;
   line-height: 1.3;
   padding-top: 1px;
+  margin-left: 0;
 }
 
 /* Alte Checkbox Styles entfernt */

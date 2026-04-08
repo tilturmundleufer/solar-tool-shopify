@@ -3,6 +3,3 @@
 .vercel
 .DS_Store
 *.min.js.map
-
-# Eigenes Shopify-CLI-Projekt (eigenes Git-Repository)
-unterkonstruktion-solartool/
