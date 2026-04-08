@@ -309,37 +309,41 @@
     };
 
     // ===== SHOPIFY INTEGRATION =====
-    // Shopify Store Domain (TODO: Durch echte Domain ersetzen)
-    const SHOPIFY_STORE_DOMAIN = 'solartool-dev.myshopify.com';
-    
-    // Shopify Variant IDs - Platzhalter für Migration
-    // TODO: Nach Erstellen des Shopify Dev-Stores durch echte Variant-IDs ersetzen
-    // Format: Numerische Variant-ID aus Shopify Admin (z.B. 12345678901234)
+    // Shopify Store Domain – myshopify.com Domain des Shops
+    // TODO: Durch echte myshopify.com-Domain ersetzen (z.B. 'schneider-unterkonstruktion.myshopify.com')
+    const SHOPIFY_STORE_DOMAIN = 'schneider-unterkonstruktion-2.myshopify.com';
+
+    // Shopify Variant IDs – numerische IDs der Default-Variante jedes Produkts
+    // ────────────────────────────────────────────────────────────────────────────
+    // IDs automatisch holen: node tools/fetch-variant-ids.js (nach .env befüllen)
+    // Manuell: Shopify Admin → Produkt → Variante → ID aus der URL
+    // Format: Numerische ID (z.B. '44532840366389') oder GID ('gid://shopify/ProductVariant/...')
+    // ────────────────────────────────────────────────────────────────────────────
     const SHOPIFY_VARIANT_MAP = {
-      // Module und Paletten
-      Solarmodul: 'PLACEHOLDER_SOLARMODUL_450W',
-      UlicaSolarBlackJadeFlow: 'PLACEHOLDER_SOLARMODUL_500W',
-      SolarmodulPalette: 'PLACEHOLDER_PALETTE_450W',
-      UlicaSolarBlackJadeFlowPalette: 'PLACEHOLDER_PALETTE_500W',
-      // Montagesystem
-      Endklemmen: 'PLACEHOLDER_ENDKLEMMEN',
-      Schrauben: 'PLACEHOLDER_SCHRAUBEN',
-      Dachhaken: 'PLACEHOLDER_DACHHAKEN',
-      Mittelklemmen: 'PLACEHOLDER_MITTELKLEMMEN',
-      Endkappen: 'PLACEHOLDER_ENDKAPPEN',
-      Schienenverbinder: 'PLACEHOLDER_SCHIENENVERBINDER',
-      Schiene_240_cm: 'PLACEHOLDER_SCHIENE_240',
-      Schiene_360_cm: 'PLACEHOLDER_SCHIENE_360',
-      // Zusatzprodukte
-      MC4_Stecker: 'PLACEHOLDER_MC4_STECKER',
-      Solarkabel: 'PLACEHOLDER_SOLARKABEL',
-      Holzunterleger: 'PLACEHOLDER_HOLZUNTERLEGER',
-      Ringkabelschuhe: 'PLACEHOLDER_RINGKABELSCHUHE',
-      Erdungsband: 'PLACEHOLDER_ERDUNGSBAND',
-      Tellerkopfschraube: 'PLACEHOLDER_TELLERKOPFSCHRAUBE',
-      // Optimierer
-      HuaweiOpti: 'PLACEHOLDER_HUAWEI_OPTI',
-      BRCOpti: 'PLACEHOLDER_BRC_OPTI'
+      // ── Module und Paletten ───────────────────────────────────
+      Solarmodul:                    '53566816026965',
+      UlicaSolarBlackJadeFlow:       '53566816092501',
+      SolarmodulPalette:             '53566748754261',
+      UlicaSolarBlackJadeFlowPalette:'53566748787029',
+      // ── Montagesystem ─────────────────────────────────────────
+      Endklemmen:                    '53566812782933',
+      Schrauben:                     '53566815404373',
+      Dachhaken:                     '53566812586325',
+      Mittelklemmen:                 '53566814945621',
+      Endkappen:                     '53566812684629',
+      Schienenverbinder:             '53566815306069',
+      Schiene_240_cm:                '53566815142229',
+      Schiene_360_cm:                '53566815240533',
+      // ── Zusatzprodukte ────────────────────────────────────────
+      MC4_Stecker:                   '53566814880085',
+      Solarkabel:                    '53566815502677',
+      Holzunterleger:                '53566816190805',
+      Ringkabelschuhe:               '53566815109461',
+      Erdungsband:                   '53566812914005',
+      Tellerkopfschraube:            '53566815732053',
+      // ── Optimierer ────────────────────────────────────────────
+      HuaweiOpti:                    '53566814650709',
+      BRCOpti:                       '53566810489173',
     };
 
     // Hilfsfunktion: Prüft ob Shopify-Integration aktiv ist (keine Platzhalter)
@@ -2998,8 +3002,12 @@
         this.totalPartsCache = null;
         
   
-                this.listHolder    = document.querySelector('.product-section');
-        this.prodList      = document.querySelector('.product-section #produktliste');
+        this.prodList =
+          document.querySelector('#config-sidebar #produktliste') || document.getElementById('produktliste');
+        this.listHolder =
+          (this.prodList && this.prodList.closest('.product-section')) ||
+          document.querySelector('#config-sidebar .product-section') ||
+          document.querySelector('.product-section');
   
         this.saveBtn       = document.getElementById('save-config-btn');
         this.addBtn        = document.getElementById('add-to-cart-btn');
@@ -3922,8 +3930,9 @@
                   titleEl.textContent = currentConfig.name || `Konfiguration #${this.currentConfig + 1}`;
               }
               
-              // Gesamtpreis aktualisieren
-              this.updateCurrentTotalPrice();
+              // Produktliste + Gesamtpreis (gleiche Datenbasis; nach DOM-Änderungen ggf. Refs neu auflösen)
+              this.ensureProductListElements();
+              this.buildList();
                   // Sichtbarkeit des Delete-Buttons sicherstellen
                   const deleteConfigBtn = document.getElementById('delete-current-config');
                   if (deleteConfigBtn) {
@@ -3931,37 +3940,54 @@
                   }
           }
           
+          getCurrentConfigSnapshot() {
+              const cfg =
+                this.currentConfig !== null && this.configs[this.currentConfig]
+                  ? this.configs[this.currentConfig]
+                  : null;
+              if (cfg) {
+                return {
+                  selection: Array.isArray(cfg.selection) ? cfg.selection : [],
+                  cols: Number(cfg.cols || this.cols),
+                  rows: Number(cfg.rows || this.rows),
+                  cellWidth: Number(cfg.cellWidth || parseFloat(this.wIn?.value || '179')),
+                  cellHeight: Number(cfg.cellHeight || parseFloat(this.hIn?.value || '113')),
+                  orientation: cfg.orientation || (this.orV?.checked ? 'vertical' : 'horizontal'),
+                  incM: cfg.incM === false ? false : true,
+                  ulicaModule: !!cfg.ulicaModule
+                };
+              }
+              return {
+                selection: this.selection,
+                cols: this.cols,
+                rows: this.rows,
+                cellWidth: parseFloat(this.wIn?.value || '179'),
+                cellHeight: parseFloat(this.hIn?.value || '113'),
+                orientation: this.orV?.checked ? 'vertical' : 'horizontal',
+                incM: (this.incM && this.incM.checked) !== false,
+                ulicaModule: document.getElementById('ulica-module')?.checked || false
+              };
+          }
+
+          ensureProductListElements() {
+              if (!this.prodList || !this.prodList.isConnected) {
+                this.prodList =
+                  document.querySelector('#config-sidebar #produktliste') || document.getElementById('produktliste');
+                this.listHolder =
+                  (this.prodList && this.prodList.closest('.product-section')) ||
+                  document.querySelector('#config-sidebar .product-section') ||
+                  document.querySelector('.product-section');
+              }
+          }
+
           updateCurrentTotalPrice() {
               const totalPriceEl = document.getElementById('current-total-price');
               if (totalPriceEl) {
-                  // Verwende bevorzugt die gespeicherten Daten der aktiven Konfiguration,
-                  // damit UI-Abweichungen (Inputs/DOM) den Preis nicht verfälschen
-                  const cfg = (this.currentConfig !== null && this.configs[this.currentConfig]) ? this.configs[this.currentConfig] : null;
-                  // Memory: Optimierte Config-Erstellung ohne unnötige Deep Copies
-                  const currentConfig = cfg ? {
-                      selection: Array.isArray(cfg.selection) ? cfg.selection : [], // Direkte Referenz - Worker arbeitet isoliert
-                      cols: Number(cfg.cols || this.cols),
-                      rows: Number(cfg.rows || this.rows),
-                      cellWidth: Number(cfg.cellWidth || parseInt(this.wIn?.value || '179')),
-                      cellHeight: Number(cfg.cellHeight || parseInt(this.hIn?.value || '113')),
-                      orientation: (cfg.orientation || (this.orV?.checked ? 'vertical' : 'horizontal')),
-                      incM: (cfg.incM === false) ? false : true,
-                      ulicaModule: !!cfg.ulicaModule
-                  } : {
-                      selection: this.selection, // Direkte Referenz - Worker arbeitet isoliert
-                      cols: this.cols,
-                      rows: this.rows,
-                      cellWidth: parseInt(this.wIn?.value || '179'),
-                      cellHeight: parseInt(this.hIn?.value || '113'),
-                      orientation: this.orV?.checked ? 'vertical' : 'horizontal',
-                      incM: (this.incM && this.incM.checked) !== false,
-                      ulicaModule: document.getElementById('ulica-module')?.checked || false
-                  };
+                  const currentConfig = this.getCurrentConfigSnapshot();
                   
                   // Berechne nur den Preis der aktuellen Konfiguration
                   let totalPrice = 0;
                   try {
-                      // Verwende die ursprüngliche calculateConfigPrice Logik für die aktuelle Konfiguration
                       totalPrice = this.calculateConfigPrice(currentConfig);
                   } catch (_) {}
                   totalPriceEl.textContent = `${totalPrice.toFixed(2).replace('.', ',')} €`;
@@ -4517,52 +4543,47 @@
               event.stopPropagation();
           }
           
-          calculateConfigPrice(config) {
-              // Verwende die ursprüngliche Berechnungslogik
+          getProductPartsForConfig(config) {
               const parts = {
                   Solarmodul: 0, Endklemmen: 0, Mittelklemmen: 0,
                   Dachhaken: 0, Schrauben: 0, Endkappen: 0,
                   Schienenverbinder: 0, Schiene_240_cm: 0, Schiene_360_cm: 0, Tellerkopfschraube: 0,
                   UlicaSolarBlackJadeFlow: 0,
-                  // Palettenzählung wird als Stückbasis 36× gespeichert
                   SolarmodulPalette: 0,
                   UlicaSolarBlackJadeFlowPalette: 0
               };
-  
-              // Berechne Teile für jede Zeile
-              for (let y = 0; y < config.rows; y++) {
+              const rows = Number(config.rows || 0);
+              const cols = Number(config.cols || 0);
+              const cw = Number(config.cellWidth || 179);
+              const ch = Number(config.cellHeight || 113);
+              const orient = config.orientation || 'vertical';
+              const ulicaM = config.ulicaModule === true;
+
+              for (let y = 0; y < rows; y++) {
                   if (!Array.isArray(config.selection[y])) continue;
                   let run = 0;
-  
-                  for (let x = 0; x < config.cols; x++) {
+                  for (let x = 0; x < cols; x++) {
                       if (config.selection[y]?.[x]) {
                           run++;
-                      }
-                      else if (run) { 
-                          this.processGroupDirectly(run, parts, config.cellWidth || 179, config.cellHeight || 113, config.orientation || 'vertical', config.ulicaModule || false); 
-                          run = 0; 
+                      } else if (run) {
+                          this.processGroupDirectly(run, parts, cw, ch, orient, ulicaM);
+                          run = 0;
                       }
                   }
                   if (run) {
-                      this.processGroupDirectly(run, parts, config.cellWidth || 179, config.cellHeight || 113, config.orientation || 'vertical', config.ulicaModule || false);
+                      this.processGroupDirectly(run, parts, cw, ch, orient, ulicaM);
                   }
               }
-              
-              // Module nur hinzufügen wenn Konfig-Flags es erlauben (DOM-unabhängig)
-              // Default: Module sind enthalten, außer incM ist explizit false
-              const includeModules = (config && config.incM === false) ? false : true;
-              // Ulica-Module nur wenn explizit true
-              const ulicaModule = (config && config.ulicaModule === true);
-              
+
+              const includeModules = config && config.incM === false ? false : true;
+              const ulicaModule = config && config.ulicaModule === true;
               if (includeModules === false) {
                   delete parts.Solarmodul;
               }
-              
               if (ulicaModule !== true) {
                   delete parts.UlicaSolarBlackJadeFlow;
               }
-              
-              // Palettenlogik: 36er bündeln je nach Modultyp
+
               try {
                   const pieceKey = ulicaModule ? 'UlicaSolarBlackJadeFlow' : 'Solarmodul';
                   const palletKey = ulicaModule ? 'UlicaSolarBlackJadeFlowPalette' : 'SolarmodulPalette';
@@ -4571,12 +4592,17 @@
                       const pallets = Math.floor(count / 36);
                       const remainder = count % 36;
                       if (pallets > 0) {
-                          parts[palletKey] = (parts[palletKey] || 0) + pallets * 36; // Stückbasis
+                          parts[palletKey] = (parts[palletKey] || 0) + pallets * 36;
                       }
                       parts[pieceKey] = remainder;
                   }
               } catch (e) {}
-              
+
+              return parts;
+          }
+
+          calculateConfigPrice(config) {
+              const parts = this.getProductPartsForConfig(config);
               let totalPrice = 0;
               Object.entries(parts).forEach(([partName, quantity]) => {
                   if (quantity > 0) {
@@ -4585,7 +4611,6 @@
                       totalPrice += packagesNeeded * pricePerPackage;
                   }
               });
-              
               return totalPrice;
           }
           
@@ -5194,88 +5219,29 @@
           }
       async buildList() {
         try {
-          const cfg =
-            this.currentConfig !== null && this.configs[this.currentConfig]
-              ? this.configs[this.currentConfig]
-              : null;
+          this.ensureProductListElements();
+          const snap = this.getCurrentConfigSnapshot();
+          const parts = this.getProductPartsForConfig(snap);
 
-          const cellWidth = cfg
-            ? Number(cfg.cellWidth || parseFloat(this.wIn?.value || '179'))
-            : parseFloat(this.wIn?.value || '179');
-          const cellHeight = cfg
-            ? Number(cfg.cellHeight || parseFloat(this.hIn?.value || '113'))
-            : parseFloat(this.hIn?.value || '113');
-          const orientation = cfg
-            ? cfg.orientation || (this.orV?.checked ? 'vertical' : 'horizontal')
-            : this.orV?.checked
-              ? 'vertical'
-              : 'horizontal';
-          const ulicaModule = cfg
-            ? !!cfg.ulicaModule
-            : document.getElementById('ulica-module')?.checked || false;
-
-          const selection =
-            cfg && Array.isArray(cfg.selection) ? cfg.selection : this.selection;
-          const rows = cfg ? Number(cfg.rows || this.rows) : this.rows;
-          const cols = cfg ? Number(cfg.cols || this.cols) : this.cols;
-
-          // Dieselbe Datenbasis wie updateCurrentTotalPrice / calculateConfigPrice (Detailansicht ≠ live Grid)
-          const parts = this.calculatePartsDirectly({
-            selection,
-            rows,
-            cols,
-            cellWidth: Number.isFinite(cellWidth) ? cellWidth : 179,
-            cellHeight: Number.isFinite(cellHeight) ? cellHeight : 113,
-            orientation,
-            options: { ulicaModule }
-          });
-          
-          // Module nur hinzufügen wenn Checkbox aktiviert ist (gleiche Logik wie calculateConfigPrice)
-          const includeModules = cfg
-            ? cfg.incM !== false
-            : document.getElementById('include-modules')?.checked || false;
-          
-          if (!includeModules) {
-            delete parts.Solarmodul;
-          }
-          
-          if (!ulicaModule) {
-            delete parts.UlicaSolarBlackJadeFlow;
-          }
-          
-          // Zusatzprodukte: Erdungsband wieder in die Produktliste aufnehmen wenn Checkbox aktiv
-          if (this.erdungsband && this.erdungsband.checked) {
-            parts.Erdungsband = this.calculateErdungsband();
-          } else {
+          try {
+            if (this.erdungsband && this.erdungsband.checked) {
+              parts.Erdungsband = this.calculateErdungsband();
+            } else {
+              delete parts.Erdungsband;
+            }
+          } catch (_) {
             delete parts.Erdungsband;
           }
-          
-          // Kabelbinder und Blech-Bohrschrauben werden NICHT in der Produktliste angezeigt
-          // Sie werden nur in der Zusatzproduktliste angezeigt
+
           delete parts.Kabelbinder;
           delete parts.BlechBohrschrauben;
-  
-  
-        // Palettenlogik für Produktliste (36er-Bündel je nach Modultyp)
-        try {
-          const pieceKey = ulicaModule ? 'UlicaSolarBlackJadeFlow' : 'Solarmodul';
-          const palletKey = ulicaModule ? 'UlicaSolarBlackJadeFlowPalette' : 'SolarmodulPalette';
-          const count = Number(parts[pieceKey] || 0);
-          if (count > 0) {
-            const pallets = Math.floor(count / 36);
-            const remainder = count % 36;
-            if (pallets > 0) {
-              parts[palletKey] = (parts[palletKey] || 0) + pallets * 36; // Stückbasis
-            }
-            parts[pieceKey] = remainder;
-          }
-        } catch (e) {}
-  
+
         const entries = Object.entries(parts).filter(([,v]) => v > 0);
         if (!entries.length) {
           if (this.listHolder) {
           this.listHolder.style.display = 'none';
           }
+          this.updateCurrentTotalPrice();
           return;
         }
         if (this.listHolder) {
@@ -5331,7 +5297,7 @@
         this.updateCurrentTotalPrice();
         
         } catch (error) {
-          // Fallback: Verstecke Liste bei Fehler
+          console.error('[SolarGrid] buildList:', error);
           if (this.listHolder) {
             this.listHolder.style.display = 'none';
           }
