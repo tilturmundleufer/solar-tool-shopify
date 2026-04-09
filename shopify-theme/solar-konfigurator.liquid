@@ -27,12 +27,19 @@
   {% endif %}
 
   {% if section.settings.display_mode == 'iframe' %}
-    {%- comment -%} iframe: Warenkorb-URL per postMessage + Script unten (nicht Cart im iframe laden). ── {%- endcomment -%}
-    <div class="solar-konfigurator-iframe-wrapper" style="position: relative; width: 100%; min-height: {{ section.settings.iframe_height }}px; border: none;">
+    {%- comment -%}
+      Start-Höhe aus Theme; Konfigurator meldet per postMessage (solar:iframeHeight) die benötigte Höhe –
+      Shop passt iframe an → kein Scrollen innerhalb des iframe nötig (bis max. ca. 95% Fensterhöhe).
+    {%- endcomment -%}
+    <div
+      class="solar-konfigurator-iframe-wrapper"
+      style="position: relative; width: 100%; min-height: {{ section.settings.iframe_height }}px; border: none;"
+    >
       <iframe
+        class="solar-konfigurator-iframe"
         src="{{ section.settings.konfigurator_url }}"
         title="Solar-Konfigurator"
-        style="width: 100%; height: {{ section.settings.iframe_height }}px; border: 0; border-radius: {{ section.settings.border_radius }}px;"
+        style="width: 100%; height: {{ section.settings.iframe_height }}px; border: 0; border-radius: {{ section.settings.border_radius }}px; display: block;"
         loading="lazy"
         allow="clipboard-write"
         referrerpolicy="origin"
@@ -69,17 +76,34 @@
     <script>
       (function () {
         var cfgUrl = {{ section.settings.konfigurator_url | json }};
-        window.addEventListener('message', function (event) {
-          if (!event.data || event.data.type !== 'solar:cartRedirect' || typeof event.data.url !== 'string')
-            return;
-          var allowedOrigin = '';
+        var sectionEl = document.getElementById('solar-konfigurator-section');
+        function allowedOrigin() {
           try {
-            allowedOrigin = new URL(cfgUrl).origin;
+            return new URL(cfgUrl).origin;
           } catch (e) {
+            return '';
+          }
+        }
+        window.addEventListener('message', function (event) {
+          var ao = allowedOrigin();
+          if (!ao || event.origin !== ao) return;
+          var d = event.data;
+          if (!d || typeof d !== 'object') return;
+
+          if (d.type === 'solar:cartRedirect' && typeof d.url === 'string') {
+            window.location.href = d.url;
             return;
           }
-          if (!allowedOrigin || event.origin !== allowedOrigin) return;
-          window.location.href = event.data.url;
+
+          if (d.type === 'solar:iframeHeight' && typeof d.height === 'number' && sectionEl) {
+            var iframe = sectionEl.querySelector('iframe.solar-konfigurator-iframe');
+            if (!iframe) return;
+            var maxPx = Math.round(window.innerHeight * 0.95);
+            var h = Math.min(Math.max(Math.round(d.height), 400), maxPx, 5600);
+            iframe.style.height = h + 'px';
+            var wrap = sectionEl.querySelector('.solar-konfigurator-iframe-wrapper');
+            if (wrap) wrap.style.minHeight = h + 'px';
+          }
         });
       })();
     </script>
@@ -92,7 +116,8 @@
   .solar-konfigurator-sub { font-size: 1.05rem; opacity: 0.8; margin: 0; }
   @media (max-width: 749px) {
     .solar-konfigurator-title { font-size: 1.4rem; }
-    .solar-konfigurator-iframe-wrapper iframe { height: 90vh !important; }
+    /* iframe-Höhe kommt von postMessage (solar:iframeHeight) – kein !important gegen inline style */
+    .solar-konfigurator-iframe-wrapper { min-height: 70vh; }
   }
 </style>
 
@@ -211,11 +236,12 @@
     {
       "type": "range",
       "id": "iframe_height",
-      "label": "iframe Höhe (px)",
+      "label": "iframe Start-Höhe (px)",
+      "info": "Wird nach Laden durch den Konfigurator per Nachricht angepasst. Nur Fallback / erster Paint.",
       "min": 400,
-      "max": 1200,
+      "max": 2000,
       "step": 50,
-      "default": 850
+      "default": 1100
     },
     {
       "type": "header",

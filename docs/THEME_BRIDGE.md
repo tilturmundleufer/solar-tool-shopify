@@ -17,6 +17,10 @@ Referenz: [Shopify: Create cart permalinks](https://shopify.dev/docs/apps/checko
 
 `storefront=true` sorgt dafür, dass Kunden im **Theme-Warenkorb** landen (nicht direkt im Checkout).
 
+### iframe-Höhe (ohne Scrollen im iframe)
+
+Der Konfigurator setzt im iframe die Klasse `html.solar-embed` und sendet **`postMessage`** mit `type: solar:iframeHeight` und `height` (Pixel). Die Section **passt Höhe und `min-height` des iframe** an (max. ca. 95 % der **Shop-Fensterhöhe**). Die Theme-Datei `solar-konfigurator.liquid` enthält den Listener; ohne aktuelles Theme-Snippet bleibt nur die manuelle **Start-Höhe** aus dem Editor.
+
 ---
 
 ## Pflicht: `window.SOLAR_SHOP_ORIGIN`

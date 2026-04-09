@@ -7669,7 +7669,51 @@
       }
     }
   
+  /** Im Shopify-iframe: Höhe an Parent melden (Theme passt iframe an), html.solar-embed für Layout-CSS */
+  function setupSolarEmbedMode() {
+    if (typeof window === 'undefined' || window.self === window.top) return;
+    try {
+      document.documentElement.classList.add('solar-embed');
+    } catch (_) {}
+    var extraPx = 40;
+    var maxPost = 5600;
+    var ro;
+    function measureAndPost() {
+      try {
+        var doc = document.documentElement;
+        var body = document.body;
+        var h = Math.max(
+          doc.scrollHeight,
+          doc.clientHeight,
+          body ? body.scrollHeight : 0,
+          body ? body.offsetHeight : 0
+        );
+        h = Math.min(maxPost, Math.max(520, Math.ceil(h + extraPx)));
+        window.parent.postMessage({ type: 'solar:iframeHeight', height: h }, '*');
+      } catch (_) {}
+    }
+    var debounceTimer;
+    function debouncedPost() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(measureAndPost, 80);
+    }
+    measureAndPost();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(measureAndPost);
+    });
+    window.addEventListener('resize', debouncedPost);
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(debouncedPost);
+      ro.observe(document.documentElement);
+      if (document.body) ro.observe(document.body);
+    }
+    [500, 1600].forEach(function (ms) {
+      setTimeout(measureAndPost, ms);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+      setupSolarEmbedMode();
       const grid = new SolarGrid();
       
       // Kundentyp-Management initialisieren

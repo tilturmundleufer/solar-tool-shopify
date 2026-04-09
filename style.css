@@ -2292,6 +2292,24 @@ body {
   --cfg-main-row-height: 80vh;
 }
 
+/*
+ * Eingebettet im Shopify-iframe: 80vh + auto-Zeile > iframe → doppeltes Scrollen.
+ * Kleinere Hauptzeile + max-height der Produktliste erzwingt internes Scrollen der Liste.
+ */
+html.solar-embed {
+  --cfg-main-row-height: min(640px, calc(100vh - 200px));
+}
+
+@media (min-width: 900px) {
+  html.solar-embed {
+    --cfg-main-row-height: min(720px, calc(100vh - 220px));
+  }
+}
+
+html.solar-embed .config-sidebar.config-card--summary .produktliste-scroll {
+  max-height: min(480px, calc(100vh - 320px));
+}
+
 .configurator-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.85fr) minmax(260px, 1fr);
