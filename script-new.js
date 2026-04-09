@@ -7669,6 +7669,40 @@
       }
     }
   
+  /** Top-Band (Eingaben + Hilfe) ein-/ausklappen, Zustand merken, iframe-Höhe neu melden */
+  function setupTopBandToggle() {
+    var band = document.getElementById('configurator-top-band');
+    var btn = document.getElementById('configurator-top-toggle');
+    var grid = document.getElementById('solar-configurator');
+    if (!band || !btn || !grid) return;
+    var label = btn.querySelector('.configurator-top-toggle-text');
+    var KEY = 'solarTool_topBandCollapsed';
+    function apply(collapsed) {
+      band.classList.toggle('is-collapsed', collapsed);
+      grid.classList.toggle('configurator-grid--top-collapsed', collapsed);
+      btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      if (label) {
+        label.textContent = collapsed
+          ? 'Eingaben & Hilfe einblenden'
+          : 'Eingaben & Hilfe ausblenden';
+      }
+      try {
+        localStorage.setItem(KEY, collapsed ? '1' : '0');
+      } catch (_) {}
+      if (typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new Event('resize'));
+      }
+    }
+    var startCollapsed = false;
+    try {
+      startCollapsed = localStorage.getItem(KEY) === '1';
+    } catch (_) {}
+    apply(startCollapsed);
+    btn.addEventListener('click', function () {
+      apply(!band.classList.contains('is-collapsed'));
+    });
+  }
+
   /** Im Shopify-iframe: Höhe an Parent melden (Theme passt iframe an), html.solar-embed für Layout-CSS */
   function setupSolarEmbedMode() {
     if (typeof window === 'undefined' || window.self === window.top) return;
@@ -7714,6 +7748,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
       setupSolarEmbedMode();
+      setupTopBandToggle();
       const grid = new SolarGrid();
       
       // Kundentyp-Management initialisieren

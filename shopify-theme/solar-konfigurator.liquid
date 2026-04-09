@@ -14,8 +14,8 @@
 
 <section
   id="solar-konfigurator-section"
-  class="solar-konfigurator-section page-width"
-  style="padding: {{ section.settings.vertical_padding }}px 0;"
+  class="solar-konfigurator-section page-width{% if section.settings.display_mode == 'iframe' %} solar-konfigurator-section--tight{% endif %}"
+  style="padding: {{ section.settings.vertical_padding }}px {% if section.settings.display_mode == 'iframe' %}8px{% else %}0{% endif %};"
 >
   {% if section.settings.show_heading %}
     <div class="solar-konfigurator-header" style="text-align: {{ section.settings.heading_align }}; margin-bottom: 1.5rem;">
@@ -112,6 +112,10 @@
 
 <style>
   .solar-konfigurator-section { width: 100%; }
+  /* iframe: Dawn page-width begrenzt Breite und addiert Rand – volle Breite nutzen, Rand nur über Section-Padding (8px) */
+  #solar-konfigurator-section.solar-konfigurator-section--tight.page-width {
+    max-width: 100%;
+  }
   .solar-konfigurator-title { font-size: 1.8rem; font-weight: 700; margin: 0 0 0.5rem; }
   .solar-konfigurator-sub { font-size: 1.05rem; opacity: 0.8; margin: 0; }
   @media (max-width: 749px) {
