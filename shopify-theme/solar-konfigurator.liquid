@@ -2,10 +2,14 @@
   Solar-Konfigurator – Theme Section
   ────────────────────────────────────────────────────────────────────────────
   Einbinden:
-    1. Diese Datei als "sections/solar-konfigurator.liquid" ins Theme hochladen
-       (Online Shop → Themes → Code bearbeiten → sections → Neue Datei)
-    2. Im Theme Editor den Block "Solar-Konfigurator" auf die gewünschte Seite ziehen
-       ODER in einer Page den Shortcode per Liquid einbinden.
+    1. Als "sections/solar-konfigurator.liquid" ins Theme (Themes → Code bearbeiten → sections)
+    2. Section im Theme Editor auf die Seite legen (z. B. „Solar-Konfigurator“-Seite)
+
+  Warenkorb (Cart-Permalink):
+    Der Konfigurator leitet bei „In den Warenkorb“ per Cart-Permalink zum Theme-Warenkorb
+    (window.top). iframe und Button/Link: dafür muss auf Vercel window.SOLAR_SHOP_ORIGIN
+    (eure Shop-Origin) in index.html gesetzt sein. Der Tab verlässt dann die Shop-Seite
+    zugunsten von /cart im Shop. Siehe docs/THEME_BRIDGE.md
   ────────────────────────────────────────────────────────────────────────────
 {% endcomment %}
 
@@ -24,7 +28,7 @@
   {% endif %}
 
   {% if section.settings.display_mode == 'iframe' %}
-    {%- comment -%} ── VARIANTE A: iframe (empfohlen, volle Integration) ── {%- endcomment -%}
+    {%- comment -%} iframe: nach „Warenkorb“ Weiterleitung zum Shop-/cart (Permalink, top window). ── {%- endcomment -%}
     <div class="solar-konfigurator-iframe-wrapper" style="position: relative; width: 100%; min-height: {{ section.settings.iframe_height }}px; border: none;">
       <iframe
         src="{{ section.settings.konfigurator_url }}"
@@ -37,7 +41,7 @@
     </div>
 
   {% else %}
-    {%- comment -%} ── VARIANTE B: CTA-Button (einfacher Link) ── {%- endcomment -%}
+    {%- comment -%} Button/Link: Konfigurator auf Vercel; Warenkorb per Permalink wie im iframe. ── {%- endcomment -%}
     <div class="solar-konfigurator-cta" style="text-align: {{ section.settings.heading_align }};">
       <a
         href="{{ section.settings.konfigurator_url }}"
@@ -81,23 +85,38 @@
   "settings": [
     {
       "type": "header",
-      "content": "Konfigurator URL"
+      "content": "Konfigurator-URL"
     },
     {
       "type": "url",
       "id": "konfigurator_url",
-      "label": "URL des Solar-Konfigurators",
-      "info": "z.B. https://dein-projekt.vercel.app"
+      "label": "URL des Solar-Konfigurators (Vercel)",
+      "info": "z. B. https://solar-tool-shopify.vercel.app — ohne abschließenden Slash"
+    },
+    {
+      "type": "header",
+      "content": "Einbindung & Shopify-Warenkorb"
+    },
+    {
+      "type": "paragraph",
+      "content": "Nach „In den Warenkorb“: Weiterleitung per Cart-Permalink zum Shopify-Theme-Warenkorb (ganzer Tab). Auf Vercel index.html: window.SOLAR_SHOP_ORIGIN auf eure Shop-URL setzen (ohne Slash am Ende). Details: docs/THEME_BRIDGE.md"
     },
     {
       "type": "select",
       "id": "display_mode",
       "label": "Anzeige-Modus",
       "options": [
-        { "value": "iframe", "label": "iframe (direkt eingebettet)" },
-        { "value": "button", "label": "Button / Link (öffnet Konfigurator)" }
+        {
+          "value": "button",
+          "label": "Button / Link (Konfigurator auf Vercel)"
+        },
+        {
+          "value": "iframe",
+          "label": "iframe (eingebettet – Warenkorb per Permalink)"
+        }
       ],
-      "default": "button"
+      "default": "button",
+      "info": "So prüfen: Theme Editor → diese Section → Feld „Anzeige-Modus“. iframe = eingebettetes Vercel-Fenster."
     },
     {
       "type": "header",
@@ -168,7 +187,7 @@
     },
     {
       "type": "header",
-      "content": "iframe-Einstellungen (Modus: iframe)"
+      "content": "iframe-Einstellungen (nur wenn Modus „iframe“)"
     },
     {
       "type": "range",

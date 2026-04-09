@@ -10,20 +10,12 @@
   <link rel="stylesheet" href="style.css" />
   <!-- jsPDF/html2canvas werden bei PDF-Export nachgeladen (script-new.js: ensureSolarPdfLibs) -->
   <script>
-    (function () {
-      if (window.SOLAR_STOREFRONT_PROXY) return;
-      var host = location.hostname;
-      var onVercelOrLocal =
-        host === 'localhost' ||
-        host === '127.0.0.1' ||
-        host.endsWith('.vercel.app');
-      window.SOLAR_STOREFRONT_PROXY = onVercelOrLocal
-        ? '/api/shopify-storefront'
-        : 'https://solar-tool-shopify.vercel.app/api/shopify-storefront';
-    })();
-    window.SOLAR_USE_STOREFRONT_API = true;
+    // Online-Store-Warenkorb: Cart-Permalink + Weiterleitung (storefront=true). Ohne diese Origin kein „In den Warenkorb“.
+    // Primary Domain oder *.myshopify.com, ohne abschließenden Slash. Im Shopify-Theme ggf. vor iframe identisch setzen.
+    if (typeof window.SOLAR_SHOP_ORIGIN === 'undefined' || !window.SOLAR_SHOP_ORIGIN) {
+      window.SOLAR_SHOP_ORIGIN = 'https://schneider-unterkonstruktion-2.myshopify.com/';
+    }
   </script>
-  <script src="shopifyStorefrontCart.js" defer></script>
   <script src="script-new.js" defer></script>
 </head>
 <body>

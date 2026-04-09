@@ -91,20 +91,19 @@ Das Solar-Tool ist eine Web-Anwendung zur einfachen Konfiguration und Bestellung
 - **PDF-Erstellung** - Dynamische A4-Seiten via `html2canvas` + `jsPDF` (Template in `#pdf-root`)
 
 ### **Backend-Integration:**
-- **Shopify Storefront API** (GraphQL) – Warenkorb über `cartCreate` / `cartLinesAdd` / `cartAttributesUpdate`; technischer Zugriff über serverseitigen Proxy (`api/shopify-storefront.js` auf Vercel, Token nur in Env).
-- **Client:** `shopifyStorefrontCart.js` (`window.solarShopifyStorefront`).
+- **Shopify Online Store** – Warenkorb per **Cart-Permalink** (GET auf `/cart/{variant}:{qty},…` mit `storefront=true`); Weiterleitung mit `window.top.location.assign`.
+- **Konfiguration im Client:** `window.SOLAR_SHOP_ORIGIN` (in `index.html`), keine Storefront-GraphQL-Route mehr.
 - **Webhook (kompakt)** - Übertragung nur essenzieller Daten (siehe unten)
 
-### **Warenkorb-Ablauf (Storefront API)**
-- Kein `POST /cart/add.js` mehr; Cart-ID wird in `localStorage` gehalten (`solar_shopify_storefront_cart_id`).
-- Varianten über `SHOPIFY_VARIANT_MAP` (numerische ID oder GID).
-- Kundentyp als Cart-Attribut `customer_type`.
-- Einrichtung: siehe `docs/STOREFRONT_SETUP.md` und `README.md`.
+### **Warenkorb-Ablauf (Cart-Permalink)**
+- Permalink inkl. `storefront=true` (Theme-Warenkorb), optional `note` (Stücklisten-Kurztext) und `attributes[customer_type]`.
+- Varianten über `SHOPIFY_VARIANT_MAP` (numerische Variant-ID).
+- Einrichtung: siehe `docs/STOREFRONT_SETUP.md`, `docs/THEME_BRIDGE.md` und `README.md`.
 
 ### **Shopify Konfiguration:**
 - `SHOPIFY_VARIANT_MAP` enthält die Shopify Variant-IDs für alle Produkte.
-- Vercel-Umgebung: `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` (empfohlen, Headless) oder `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (Legacy).
-- Bei fehlender Konfiguration (Platzhalter-IDs) zeigt das Tool entsprechende Fehlermeldungen.
+- `SOLAR_SHOP_ORIGIN` muss zur erreichbaren Shop-Domain passen.
+- Bei fehlender Konfiguration (Platzhalter-IDs oder fehlende Origin) zeigt das Tool entsprechende Fehlermeldungen.
 
 ### **Zusätzliche Integrationen:**
 - **Webhook-Analytics** - Nutzungsauswertung für Optimierungen
@@ -112,7 +111,7 @@ Das Solar-Tool ist eine Web-Anwendung zur einfachen Konfiguration und Bestellung
 
 ### **Datenfluss:**
 ```
-Planung (Papier) → Solar-Tool (App) → Storefront API → Checkout → Bestellung → Installation
+Planung (Papier) → Solar-Tool (App) → Cart-Permalink → Theme-Warenkorb / Checkout → Bestellung → Installation
                               ↓
                          Webhook Analytics → Optimierungen
 ```
@@ -168,6 +167,7 @@ Hinweise:
 - `selection.selectedCount` stimmt mit `selectedCoords.length` überein.
 
 ### 📓 Changelog
+- 2026-04-09: **Cart-Permalink only.** Warenkorb ausschließlich über Shopify Cart-Permalinks + `window.top`-Weiterleitung; Storefront-API-Proxy und `shopifyStorefrontCart.js` entfernt. Siehe `docs/STOREFRONT_SETUP.md`, `docs/THEME_BRIDGE.md`.
 - 2026-03-25: **Headless / Storefront API.** Warenkorb über GraphQL (`shopifyStorefrontCart.js`) und Vercel-Proxy `api/shopify-storefront.js`; kein Ajax `cart/add.js` mehr. PDF-Bibliotheken (jsPDF/html2canvas) erst bei PDF-Export nachgeladen. Siehe `docs/STOREFRONT_SETUP.md`, `docs/THEME_BRIDGE.md`.
 - 2026-01-26: **Shopify-Migration abgeschlossen.** Vollständige Umstellung auf Shopify Cart API. Foxy.io-Fallback entfernt. Kundentyp-Management in `script-new.js` integriert. Veraltete Dateien (fullpage-cart, customer-type-popup, cms-search) entfernt.
 - 2025-10-08: Fix: „Gesamte Auswahl in den Warenkorb" ergänzt jetzt die Tellerkopfschrauben korrekt (global = 2× Dachhaken). PDF: Optimierer (Huawei/BRC) erscheinen auf der Zusatzprodukte-Seite; Menge aus UI (`opti-qty`).
@@ -335,9 +335,9 @@ Hinweis: Der Verteilungsmodus `gleichmäßig` ist deaktiviert. Bitte verwenden S
 - Performance-Optimierung für große Grids
 
 ### **Shopify Integration**
-- `addToShopifyCart()` / `addAllToShopifyCart()` – nutzen `window.solarShopifyStorefront` (Storefront API)
-- `shopifyStorefrontCart.js` – GraphQL über Proxy `SOLAR_STOREFRONT_PROXY` (Standard `/api/shopify-storefront`)
-- `SHOPIFY_VARIANT_MAP` – Mapping von Produkt-Keys zu Variant-IDs (numerisch oder GID)
+- `addToShopifyCart()` / `addAllToShopifyCart()` – bauen Cart-Permalink und `redirectToShopifyCartPermalink()` (`window.top`)
+- `getSolarShopOrigin()` / `buildShopifyCartPermalinkUrl()` – in `script-new.js`
+- `SHOPIFY_VARIANT_MAP` – Mapping von Produkt-Keys zu numerischen Variant-IDs
 
 ---
 

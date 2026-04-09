@@ -352,10 +352,67 @@
       return firstVariant && !firstVariant.startsWith('PLACEHOLDER_');
     }
 
-    /** Headless: Storefront API über /api/shopify-storefront (siehe shopifyStorefrontCart.js) */
-    function useStorefrontCartApi() {
-      if (typeof window === 'undefined' || !window.solarShopifyStorefront) return false;
-      return window.SOLAR_USE_STOREFRONT_API !== false;
+    /** Cart-Permalink (Theme-Warenkorb): iframe → top.location, siehe window.SOLAR_SHOP_ORIGIN */
+    function getSolarShopOrigin() {
+      if (typeof window === 'undefined') return '';
+      const o = window.SOLAR_SHOP_ORIGIN;
+      return typeof o === 'string' ? o.trim().replace(/\/+$/, '') : '';
+    }
+
+    function useCartPermalink() {
+      return !!getSolarShopOrigin() && isShopifyConfigured();
+    }
+
+    function toPermalinkVariantNumericId(id) {
+      if (id == null || id === '') return 0;
+      const s = String(id).trim();
+      const num = s.replace(/\D/g, '');
+      return num ? parseInt(num, 10) : 0;
+    }
+
+    function mergePermalinkLinesByVariant(items) {
+      const map = new Map();
+      items.forEach((it) => {
+        const vid = toPermalinkVariantNumericId(it.id);
+        if (!vid) return;
+        const q = Math.max(1, parseInt(it.quantity, 10) || 1);
+        map.set(vid, (map.get(vid) || 0) + q);
+      });
+      return Array.from(map.entries()).map(([id, quantity]) => ({ id, quantity }));
+    }
+
+    function buildSolarBomNoteForPermalink(items) {
+      const parts = items.map((it) => {
+        const p = it.properties || {};
+        const k = p._productKey != null ? String(p._productKey) : '?';
+        const oq = p._originalQty != null ? p._originalQty : it.quantity;
+        return `${k}:${oq}`;
+      });
+      let s = 'Solar-Konfigurator — ' + parts.join(' | ');
+      const max = 1200;
+      if (s.length > max) s = s.slice(0, max - 1) + '…';
+      return s;
+    }
+
+    function buildShopifyCartPermalinkUrl(shopOrigin, items, options) {
+      const lines = mergePermalinkLinesByVariant(items);
+      if (!lines.length) return null;
+      const pathSeg = lines.map((l) => `${l.id}:${l.quantity}`).join(',');
+      const params = new URLSearchParams();
+      params.set('storefront', 'true');
+      const ct = options && options.customerType;
+      if (ct) params.append('attributes[customer_type]', String(ct));
+      const note = options && options.note;
+      if (note) params.set('note', String(note));
+      return `${shopOrigin}/cart/${pathSeg}?${params.toString()}`;
+    }
+
+    function redirectToShopifyCartPermalink(url) {
+      try {
+        window.top.location.assign(url);
+      } catch (_) {
+        window.location.assign(url);
+      }
     }
 
     // ===== KUNDENTYP-MANAGEMENT =====
@@ -6436,26 +6493,33 @@
           return false;
         }
         
-        if (useStorefrontCartApi()) {
+        if (useCartPermalink()) {
           try {
-            const result = await window.solarShopifyStorefront.addSingle(
-              variantId,
-              Math.max(1, parseInt(quantity, 10) || 1),
-              { _productKey: productKey },
-              getStoredCustomerType
+            const origin = getSolarShopOrigin();
+            const qty = Math.max(1, parseInt(quantity, 10) || 1);
+            const url = buildShopifyCartPermalinkUrl(
+              origin,
+              [{ id: variantId, quantity: qty, properties: { _productKey: productKey } }],
+              {
+                customerType: getStoredCustomerType() || undefined,
+                note: buildSolarBomNoteForPermalink([
+                  { id: variantId, quantity: qty, properties: { _productKey: productKey } },
+                ]),
+              }
             );
-            if (result && result.ok) {
-              try { document.dispatchEvent(new CustomEvent('cart:updated', { detail: result.cart || {} })); } catch(_) {}
-              return true;
-            }
-            return false;
+            if (!url) return false;
+            redirectToShopifyCartPermalink(url);
+            return true;
           } catch (e) {
-            console.error(`[SolarGrid] Storefront Add-to-Cart Fehler für ${productKey}:`, e);
+            console.error(`[SolarGrid] Cart-Permalink Fehler für ${productKey}:`, e);
             this.showToast(`Fehler beim Hinzufügen: ${productKey}`, 3000);
             return false;
           }
         }
-        this.showToast('Storefront-Modul fehlt. Bitte shopifyStorefrontCart.js einbinden (siehe index.html).', 5000);
+        this.showToast(
+          'Shop-URL fehlt. Bitte window.SOLAR_SHOP_ORIGIN setzen (z. B. https://dein-shop.myshopify.com).',
+          5000
+        );
         return false;
       }
       
@@ -6496,28 +6560,34 @@
           return;
         }
         
-        if (!useStorefrontCartApi()) {
-          this.showToast('Storefront-Modul fehlt. Bitte shopifyStorefrontCart.js einbinden.', 5000);
+        if (!useCartPermalink()) {
+          this.showToast(
+            'Shop-URL fehlt. Bitte window.SOLAR_SHOP_ORIGIN setzen (z. B. https://dein-shop.myshopify.com).',
+            5000
+          );
           return;
         }
 
-        this.showLoading('Warenkorb wird befüllt…');
-        
+        this.showLoading('Weiterleitung zum Shop-Warenkorb…');
+
         try {
           const payload = items.map((it) => ({
             id: it.id,
             quantity: it.quantity,
             properties: it.properties || {},
           }));
-          const result = await window.solarShopifyStorefront.addLineItems(payload, {
+          const origin = getSolarShopOrigin();
+          const url = buildShopifyCartPermalinkUrl(origin, payload, {
             customerType: getStoredCustomerType() || undefined,
+            note: buildSolarBomNoteForPermalink(payload),
           });
-          if (result && result.ok) {
-            try { document.dispatchEvent(new CustomEvent('cart:updated', { detail: result.cart || {} })); } catch(_) {}
-            this.showToast(`${items.length} Produkte zum Warenkorb hinzugefügt`, 2000);
+          if (!url) {
+            this.showToast('Warenkorb-Link konnte nicht erstellt werden.', 3000);
+            return;
           }
+          redirectToShopifyCartPermalink(url);
         } catch (e) {
-          console.error('[SolarGrid] Storefront Bulk Add-to-Cart Fehler:', e);
+          console.error('[SolarGrid] Cart-Permalink Bulk-Fehler:', e);
           this.showToast('Fehler beim Hinzufügen zum Warenkorb', 3000);
         } finally {
           this.hideLoading();

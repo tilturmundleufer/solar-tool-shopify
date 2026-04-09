@@ -1,71 +1,42 @@
-# Shopify Storefront API (Solar-Tool) – nachhaltige Einrichtung
+# Shopify-Warenkorb (Solar-Tool) – Cart-Permalink
 
-Der Konfigurator spricht die Storefront API nur über **`api/shopify-storefront.js`** (Vercel) an. Tokens liegen **nur** in den Server-Umgebungsvariablen.
+Der Konfigurator befüllt den **Online-Store-Warenkorb** über einen **Cart-Permalink** (kein Storefront-API-Proxy, kein separates Headless-Cart-`localStorage`).
 
-## Empfohlen: Headless-Kanal + privater Storefront-Token
+Offizielle Doku: [Create cart permalinks](https://shopify.dev/docs/apps/checkout/cart-permalinks/create)
 
-Offiziell und für Custom Storefronts gedacht, unabhängig von der Abschaffung neuer „Legacy“-Custom-Apps ab 2026.
+## Was ihr konfigurieren müsst
 
-1. Im **Shopify Admin** den Vertriebskanal **[Headless](https://apps.shopify.com/headless)** installieren (App Store).
-2. Im Kanal **Storefront anlegen** (oder bestehendes wählen).
-3. Unter **Storefront API permissions** alle Scopes setzen, die ihr braucht, z. B.:
-   - Produktlisten / Varianten
-   - **Cart:** `unauthenticated_read_cart`, `unauthenticated_write_cart` (Bezeichnungen in der UI können leicht abweichen)
-   - ggf. Checkout, falls ihr die älteren Checkout-Mutationen nutzt
-4. Den **Private access token** kopieren und **nur serverseitig** verwenden (nie im Browser).
+### 1. `window.SOLAR_SHOP_ORIGIN` (Pflicht)
 
-Referenz: [Getting started with the Storefront API](https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api/getting-started), [Storefront API authentication](https://shopify.dev/docs/api/usage/authentication#access-tokens-for-the-storefront-api).
+- **Origin ohne** abschließenden Slash, z. B. `https://mein-shop.myshopify.com` oder die **Primary Domain** des Shops.
+- In **[index.html](../index.html)** den Platzhalter `https://DEIN-SHOP.myshopify.com` ersetzen.
+- Muss mit der Domain übereinstimmen, unter der euer **Theme-Warenkorb** und `/cart` für Kunden funktionieren.
 
-## Umgebungsvariablen (Vercel / lokal)
+### 2. Varianten-IDs in `script-new.js`
 
-| Variable | Beschreibung |
-|----------|----------------|
-| `SHOPIFY_STORE_DOMAIN` | z. B. `mein-shop.myshopify.com` (ohne `https://`) |
-| **`SHOPIFY_STOREFRONT_PRIVATE_TOKEN`** | **Empfohlen:** privater Token aus dem Headless-Kanal |
-| `SHOPIFY_STOREFRONT_API_VERSION` | z. B. `2025-01` oder `2024-10` (mit euren GraphQL-Mutationen testen) |
-| `SOLAR_ALLOWED_ORIGIN` | Optional: erlaubte Browser-Origin für CORS (z. B. Shop-URL mit `https://`) |
+In [script-new.js](../script-new.js) die Map **`SHOPIFY_VARIANT_MAP`** mit **numerischen** Shopify-Variant-IDs füllen (keine `PLACEHOLDER_*`).
 
-Der Proxy setzt bei privatem Token automatisch:
+Hilfsskript: `tools/fetch-variant-ids.js` (Admin API, siehe [SHOPIFY_SETUP_ANLEITUNG.md](SHOPIFY_SETUP_ANLEITUNG.md)).
 
-- `Shopify-Storefront-Private-Token`
-- `Shopify-Storefront-Buyer-IP` (aus `X-Forwarded-For` / `X-Real-IP` von Vercel)
+### 3. Query-Parameter (automatisch)
 
-## Alternative: Öffentlicher Storefront-Token (Legacy)
+Das Tool hängt u. a. an:
 
-Falls ihr weiter einen **öffentlichen** Storefront-Access-Token nutzt (z. B. früher aus einer Custom App oder per Admin-Mutation `storefrontAccessTokenCreate`):
-
-- Nur **`SHOPIFY_STOREFRONT_ACCESS_TOKEN`** setzen ( **`SHOPIFY_STOREFRONT_PRIVATE_TOKEN` leer lassen** ).
-- Der Proxy verwendet dann `X-Shopify-Storefront-Access-Token`.
-
-Siehe [storefrontAccessTokenCreate](https://shopify.dev/docs/api/admin-graphql/latest/mutations/storefrontAccessTokenCreate) (benötigt installierte App + Admin-Zugang, z. B. Client Credentials für die Admin API – [About client credentials](https://shopify.dev/docs/apps/build/authentication-authorization/client-secrets)).
+- `storefront=true` – Ziel ist der **Theme-Warenkorb**, nicht direkt der Checkout.
+- `note=…` – Kurztext mit Stücklisten-Übersicht (Solar-Konfigurator).
+- `attributes[customer_type]=private|business` – wenn im Tool ein Kundentyp gewählt wurde.
 
 ## Lokale Entwicklung
 
-1. `.env` oder `.env.local` aus [.env.example](../.env.example) befüllen (`SHOPIFY_STORE_DOMAIN`, privater oder öffentlicher Storefront-Token).
-2. **`vercel dev`** im Projektroot ausführen (Vercel CLI installiert). So sind **`/api/shopify-storefront`** und die statischen Dateien unter derselben Origin erreichbar.
-3. **Nicht** nur `npx serve` / reines statisches Hosting: Dann liefert `/api/shopify-storefront` **404** – der Warenkorb kann nicht befüllt werden.
-4. **`SOLAR_ALLOWED_ORIGIN`**: Für lokale Tests die Origin eintragen, z. B. `http://localhost:3000` (Port wie bei `vercel dev`). Mehrere Origins **kommagetrennt**, z. B. `http://localhost:3000,https://dein-shop.myshopify.com`, sonst schlägt der **CORS-Preflight** fehl, wenn der Konfigurator von einer anderen Domain aus eingebunden ist.
+- Statischer Serve (`npm run serve` / `npx serve`) reicht für den Warenkorb **ohne** Server-API zum Cart.
+- **`SOLAR_SHOP_ORIGIN`** muss eine **erreichbare** Shop-URL sein; bei passwortgeschütztem Shop ggf. erst nach Passwort-Eingabe testen.
 
-### Konfigurator im Shopify-Theme (Online Store)
+## Optional: Storefront-Tokens nur für Hilfs-Tools
 
-- `window.SOLAR_STOREFRONT_PROXY` darf **nicht** nur `/api/…` sein, wenn die Seite auf **eurer Shop-Domain** läuft – dort existiert euer Vercel-API-Route nicht. Stattdessen die **volle URL** setzen, z. B. `https://euer-projekt.vercel.app/api/shopify-storefront`.
-- Dieselbe Origin (Shop-URL, ggf. `www`) muss in **`SOLAR_ALLOWED_ORIGIN`** (kommagetrennt) stehen.
-
-### Theme-Warenkorb vs. Storefront API (automatisch)
-
-- Läuft die Seite unter **`*.myshopify.com`** (Konfigurator-Skripte auf der Shop-Seite, **kein** iframe von Vercel), nutzt `shopifyStorefrontCart.js` automatisch den **Online-Store-Ajax-Warenkorb** ([`POST /cart/add.js`](https://shopify.dev/docs/api/ajax/reference/cart#post-locale-cart-add-js)) – **derselbe Warenkorb** wie im Theme-Mini-Cart.
-- Läuft die App unter **`*.vercel.app`**, **localhost** o. Ä., wird weiter die **Storefront API** über den Proxy verwendet (eigener Headless-Cart).
-- **Eigene Shop-Domain** (nicht `myshopify.com`): vor den Skripten `window.SOLAR_USE_THEME_CART = true;` setzen, damit `/cart/add.js` genutzt wird.
-- **iframe** mit `src="https://…vercel.app"`: Origin ist Vercel → es bleibt der **Storefront-Cart**; der Theme-Warenkorb füllt sich dann nicht. Lösung: Konfigurator **ohne iframe** auf einer Shopify-Seite einbinden (Assets/Seite im Theme) oder nur Link zum Vercel-Konfigurator.
-
-## Varianten-IDs
-
-In [script-new.js](../script-new.js) `SHOPIFY_VARIANT_MAP` mit numerischen Variant-IDs oder GIDs (Normalisierung in `shopifyStorefrontCart.js`). Platzhalter `PLACEHOLDER_*` entfernen.
-
-## Proxy-URL im Frontend
-
-Standard: `window.SOLAR_STOREFRONT_PROXY = '/api/shopify-storefront'`.
+Ein **Headless-Storefront-Token** wird für den **Warenkorb dieses Projekts nicht mehr** benötigt. Optional weiterhin für `tools/create-storefront-token.js` oder andere Experimente – siehe [.env.example](../.env.example).
 
 ## Test
 
-Konfigurator öffnen → Warenkorb befüllen → im Admin **Warenkörbe** prüfen oder `cart.checkoutUrl` aus der API testen.
+1. `SOLAR_SHOP_ORIGIN` und `SHOPIFY_VARIANT_MAP` setzen.
+2. Konfigurator öffnen → „In den Warenkorb“.
+3. Browser sollte auf **`/cart`** des Shops wechseln; Zeilen und Notiz prüfen.

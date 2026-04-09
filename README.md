@@ -6,38 +6,32 @@ Eine Web-Anwendung zur einfachen Konfiguration und Bestellung von Solaranlagen-K
 
 - `script-new.js` - Hauptdatei mit allen Funktionen (inkl. Kundentyp-Management, Shopify-Integration)
 - `script-new.min.js` - Minifizierte Produktionsversion
-- `shopifyStorefrontCart.js` - Storefront-API-Client (Warenkorb über GraphQL-Proxy)
-- `shopifyStorefrontCart.min.js` - Minifizierte Version
-- `api/shopify-storefront.js` - Vercel Serverless: GraphQL-Proxy (Token nur serverseitig)
 - `api/pdf-export.js` - Platzhalter für optionales Server-PDF
 - `calculation-worker.js` - Web Worker für Background-Berechnungen
 - `style.css` - Styling
 - `index.html` - Hauptseite
-- `docs/STOREFRONT_SETUP.md` - Headless Storefront-Token + Env-Variablen
+- `docs/STOREFRONT_SETUP.md` - Warenkorb per Cart-Permalink + Varianten
 - `docs/THEME_BRIDGE.md` - Link/iframe vom Shopify-Theme zur App
 
-## 🛒 Shopify-Integration (Headless / Storefront API)
+## 🛒 Shopify-Integration (Cart-Permalink → Theme-Warenkorb)
 
-Warenkorb läuft über die **Shopify Storefront API** (GraphQL), nicht mehr über `POST /cart/add.js` auf der Shop-Domain. Der **Zugriffstoken** liegt nur in der **Vercel-Umgebung** (`api/shopify-storefront.js`).
+Nach „In den Warenkorb“ leitet das Tool per **`window.top.location`** zu einer **Shopify Cart-Permalink-URL** weiter (`/cart/{variant}:{qty},…?storefront=true` …). Es gibt **keinen** separaten Headless-Cart mehr. Siehe [Shopify: Cart permalinks](https://shopify.dev/docs/apps/checkout/cart-permalinks/create).
 
 ### Konfiguration
 
-1. **Headless-Kanal** im Shopify Admin + **private access token** – siehe [docs/STOREFRONT_SETUP.md](docs/STOREFRONT_SETUP.md) und [docs/SHOPIFY_SETUP_ANLEITUNG.md](docs/SHOPIFY_SETUP_ANLEITUNG.md)
-2. **Vercel:** `SHOPIFY_STORE_DOMAIN`, **`SHOPIFY_STOREFRONT_PRIVATE_TOKEN`** (empfohlen), optional `SHOPIFY_STOREFRONT_ACCESS_TOKEN` nur für Legacy-Public-Token – siehe [.env.example](.env.example)
-3. **Variant-IDs** in `script-new.js` → `SHOPIFY_VARIANT_MAP` (numerische IDs oder GIDs)
-4. **Minifizieren:**  
-   `npx terser script-new.js -o script-new.min.js -c -m`  
-   `npx terser shopifyStorefrontCart.js -o shopifyStorefrontCart.min.js -c -m`
-5. Produktion: In `index.html` auf `script-new.min.js` und `shopifyStorefrontCart.min.js` umstellen (optional)
+1. **`window.SOLAR_SHOP_ORIGIN`** in [index.html](index.html) (Shop-Origin ohne Slash)
+2. **Variant-IDs** in `script-new.js` → `SHOPIFY_VARIANT_MAP` (numerische IDs)
+3. **Minifizieren:** `npm run minify` oder `npx terser script-new.js -o script-new.min.js -c -m`
+4. Details: [docs/STOREFRONT_SETUP.md](docs/STOREFRONT_SETUP.md), [docs/SHOPIFY_SETUP_ANLEITUNG.md](docs/SHOPIFY_SETUP_ANLEITUNG.md)
 
 ### Funktionen
 
-- `addToShopifyCart` / `addAllToShopifyCart` nutzen `window.solarShopifyStorefront` (Storefront)
-- Kundentyp als Cart-Attribut (`customer_type`)
+- `addToShopifyCart` / `addAllToShopifyCart` bauen den Permalink und leiten zum Shop um
+- Kundentyp als Cart-Attribut `attributes[customer_type]`; Stückliste als `note`
 
 ### Vercel-Deploy
 
-- Root-Verzeichnis verbinden, Umgebungsvariablen setzen, deployen.
+- Root-Verzeichnis verbinden, deployen (für den Warenkorb sind keine Storefront-Tokens nötig).
 - Theme: Link oder iframe zum Konfigurator – [docs/THEME_BRIDGE.md](docs/THEME_BRIDGE.md)
 
 ## 📚 Dokumentation

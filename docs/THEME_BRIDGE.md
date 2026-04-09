@@ -1,66 +1,47 @@
 # Theme-Brücke: Shopify-Shop → Konfigurator (Vercel)
 
-Der Konfigurator läuft auf einer **eigenen URL** (z. B. Vercel). Die Shop-Theme-Seite soll nur verlinken oder einbetten.
+Der Konfigurator liegt typischerweise auf **Vercel** (`*.vercel.app`). Die **Shopify-Section** (`shopify-theme/solar-konfigurator.liquid`) steuert die **Einbindung** (iframe oder Link). Der **Theme-Warenkorb** wird über **Cart-Permalinks** befüllt, sobald der Kunde im Konfigurator auf „In den Warenkorb“ tippt.
 
-## Warenkorb im Theme (Mini-Cart)
+Referenz: [Shopify: Create cart permalinks](https://shopify.dev/docs/apps/checkout/cart-permalinks/create)
 
-Wenn die Konfigurator-JavaScripte auf einer **Shopify-Seite** unter **`*.myshopify.com`** laufen (gleiche Origin wie der Shop), fügt `shopifyStorefrontCart.js` Produkte per **`/cart/add.js`** hinzu – der **Theme-Warenkorb** aktualisiert sich wie bei normalem „In den Warenkorb“.
+---
 
-- **Custom Domain** (z. B. `www.…`): vor `shopifyStorefrontCart.js` setzen:  
-  `window.SOLAR_USE_THEME_CART = true;`
-- **Nur** Storefront API (Headless-Cart, kein Theme-Warenkorb):  
-  `window.SOLAR_USE_THEME_CART = false;`
-- **iframe** mit Vercel-URL: Origin ist Vercel → es wird die Storefront API genutzt; der Shop-Mini-Cart bleibt leer. Konfigurator besser **direkt** im Theme (ohne iframe) oder per Link öffnen.
+## Ablauf (iframe oder Vercel-Tab)
 
-## Storefront-Proxy & CORS (nur Headless-Modus)
+1. Kunde konfiguriert auf **Vercel-Origin**.
+2. Beim Hinzufügen baut das Tool eine URL der Form  
+   `https://EURE-SHOP-DOMAIN/cart/{variantId}:{qty},…?storefront=true&note=…&attributes[customer_type]=…`
+3. **`window.top.location.assign(url)`** – der **gesamte Browser-Tab** wechselt zum Shop; der **Online-Store-Warenkorb** (Theme `/cart`, Mini-Cart) enthält die Zeilen.
 
-Wenn die Seite **nicht** `*.myshopify.com` ist (oder `SOLAR_USE_THEME_CART === false`), geht der Warenkorb über den **Vercel-Proxy** zur Storefront API. Dann muss `SOLAR_STOREFRONT_PROXY` die volle Vercel-URL sein (siehe `index.html`) und auf Vercel **`SOLAR_ALLOWED_ORIGIN`** die Origin der Seite enthalten, z. B.:
+`storefront=true` sorgt dafür, dass Kunden im **Theme-Warenkorb** landen (nicht direkt im Checkout).
 
-`https://schneider-unterkonstruktion-2.myshopify.com`
+---
 
-Vor dem Laden der Skripte: `window.SOLAR_STOREFRONT_PROXY = '…';`
+## Pflicht: `window.SOLAR_SHOP_ORIGIN`
 
-## Variante A: Link (empfohlen, einfach)
-
-In **Onlineshop → Seiten** eine Seite „Konfigurator“ anlegen, Inhalt:
-
-```html
-<p><a href="https://DEIN-VERCEL-PROJEKT.vercel.app" class="button">Zum Solar-Konfigurator</a></p>
-```
-
-## Variante B: Liquid-Snippet (Theme-Code)
-
-`sections/solar-konfigurator-cta.liquid`:
-
-```liquid
-<section class="solar-konfigurator-cta page-width">
-  <h2>{{ section.settings.heading }}</h2>
-  <a href="{{ section.settings.konfigurator_url }}" class="button" target="_blank" rel="noopener">
-    {{ section.settings.label }}
-  </a>
-</section>
-{% schema %}
-{
-  "name": "Konfigurator CTA",
-  "settings": [
-    { "type": "text", "id": "heading", "label": "Überschrift", "default": "Solaranlage planen" },
-    { "type": "url", "id": "konfigurator_url", "label": "Konfigurator-URL" },
-    { "type": "text", "id": "label", "label": "Button-Text", "default": "Zum Konfigurator" }
-  ],
-  "presets": [{ "name": "Konfigurator CTA" }]
-}
-{% endschema %}
-```
-
-## Variante C: iframe (optional)
+- Wert: **Origin ohne Slash**, z. B. `https://dein-shop.myshopify.com` oder eure **Primary Domain**.
+- In **[index.html](../index.html)** setzen (Standard-Platzhalter `DEIN-SHOP` ersetzen).
+- **iframe:** Die Vercel-Seite muss dieselbe Origin kennen. Wenn ihr im Theme **kein** dupliziertes `index.html` nutzt, reicht die Konfiguration auf Vercel. Wenn ihr Skripte im Theme injiziert, dort **vor** dem iframe identisch setzen:
 
 ```html
-<iframe
-  src="https://DEIN-VERCEL-PROJEKT.vercel.app"
-  title="Solar-Konfigurator"
-  style="width:100%;min-height:80vh;border:0;"
-  loading="lazy"
-></iframe>
+<script>window.SOLAR_SHOP_ORIGIN = 'https://dein-shop.myshopify.com';</script>
 ```
 
-**Hinweis:** `postMessage` nur nötig, wenn der Shop die Rückkehr zum Warenkorb steuern soll; der Warenkorb über Storefront API ist **unabhängig** von der Domain des Theme.
+---
+
+## Anzeige-Modus der Section
+
+| Modus | Verhalten |
+|-------|-----------|
+| **iframe** | Konfigurator eingebettet; „Warenkorb“ **verlässt** die Shop-Seite und öffnet den **Shop-Warenkorb** im selben Tab (Top-Navigation). |
+| **Button / Link** | Nutzer arbeiten auf Vercel; bei „Warenkorb“ ebenfalls **Weiterleitung** zur Shop-`/cart`-URL (gleiches Permalink-Verhalten). |
+
+---
+
+## Grenzen & Hinweise
+
+- **Storefront-Passwort:** Cart-Permalinks **umgehen** das Shop-Passwort nicht (Shopify-Limitierung).
+- **Sehr lange Konfigurationen:** Die URL enthält alle Varianten:mengen plus eine kompakte **Notiz** (`note`); bei extrem vielen Zeilen kann die URL-Länge zum Browser-Limit werden (selten).
+- **Line Item Properties:** Shopify erlaubt im Permalink nur eingeschränkt Properties auf der **ersten** Zeile; das Tool legt stattdessen eine **Bestellnotiz** mit Stücklisten-Kurztext an.
+
+Weitere Einrichtung: [STOREFRONT_SETUP.md](STOREFRONT_SETUP.md) (Warenkorb per Permalink + Varianten).

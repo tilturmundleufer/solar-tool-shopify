@@ -34,13 +34,12 @@ Development Environment            Production Environment
 After editing `script-new.js`, you MUST:
 
 ```bash
-# Use terser for minification
+# Use terser for minification (oder: npm run minify)
 npx terser script-new.js -o script-new.min.js -c -m
-npx terser shopifyStorefrontCart.js -o shopifyStorefrontCart.min.js -c -m
 ```
 
 #### Step 3: Verify Both Files
-- ✅ `script-new.js` / `shopifyStorefrontCart.js` lesbar
+- ✅ `script-new.js` lesbar
 - ✅ `*.min.js` minifiziert und funktional identisch
 - ✅ Dateien synchron (Funktionsparität)
 
@@ -142,7 +141,7 @@ When making changes, document:
 - Webflow-Produktformulare: Alle `form[data-node-type="commerce-add-to-cart-form"]` global unsichtbar setzen.
 - Logging: In Produktion `console.log`, `console.info`, `console.debug` global zu No-Ops machen; `console.warn/error` behalten.
 
-4) Minify strikt mit terser: `npx terser script-new.js -o script-new.min.js -c -m` und `npx terser shopifyStorefrontCart.js -o shopifyStorefrontCart.min.js -c -m`.
+4) Minify strikt mit terser: `npx terser script-new.js -o script-new.min.js -c -m` (oder `npm run minify`).
 
 5) Git-Regeln (Dateien getrennt committen):
 ```bash
@@ -157,7 +156,7 @@ git push origin main
 
 6) Vor-Abschluss-Checks:
 - [ ] Smart-Config-Patterns weiter funktionsfähig
-- [ ] Shopify-Integration korrekt (SHOPIFY_VARIANT_MAP)
+- [ ] Shopify: `SHOPIFY_VARIANT_MAP` + `window.SOLAR_SHOP_ORIGIN` in `index.html`
 - [ ] Keine neuen Linterfehler
 - [ ] Doku aktualisiert
 
