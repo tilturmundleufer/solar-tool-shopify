@@ -1276,10 +1276,12 @@ body {
   overflow: hidden;
 }
 
-/* Sidebar-Detail: flex-basis 0 nötig, sonst wächst die Sektion mit der Liste und scrollt nicht */
+/* Sidebar-Detail: zweite Zeile frisst Resthöhe; minmax(0,…) erlaubt Scroll statt Abschneiden */
 .config-sidebar.config-card--summary .product-section {
   flex: 1 1 0;
   min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .config-sidebar.config-card--summary .product-section-label {
@@ -1300,13 +1302,11 @@ body {
 }
 
 /*
- * Produktliste: height:0 + flex:1 verteilt die Höhe im Column-Flex; sonst min-height:auto
- * (bes. Grid-Zelle) verhindert Schrumpfen → Liste wird abgeschnitten statt scrollbar.
+ * Produktliste: zweite Grid-Zeile (minmax(0,1fr)) liefert die Max-Höhe; Inhalt scrollt bei Überlauf.
+ * Kein height:0 (kollabiert in manchen WebKit-/iframe-Kontexten).
  */
 .config-sidebar.config-card--summary .produktliste-scroll {
-  flex: 1 1 0%;
   min-height: 0;
-  height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
