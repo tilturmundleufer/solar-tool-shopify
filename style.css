@@ -1276,12 +1276,16 @@ body {
   overflow: hidden;
 }
 
-/* Sidebar-Detail: zweite Zeile frisst Resthöhe; minmax(0,…) erlaubt Scroll statt Abschneiden */
+/*
+ * Flex statt Grid: bei unklarer Grid-Track-Höhe (iframe) wächst 1fr wie auto → kein overflow-y.
+ * flex: 1 1 0% + min-height: 0 auf Section und Scroll-Wrapper erzwingt begrenzte Höhe + Scroll.
+ */
 .config-sidebar.config-card--summary .product-section {
-  flex: 1 1 0;
+  flex: 1 1 0%;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .config-sidebar.config-card--summary .product-section-label {
@@ -1301,16 +1305,14 @@ body {
   color: #8F8F8F;
 }
 
-/*
- * Produktliste: zweite Grid-Zeile (minmax(0,1fr)) liefert die Max-Höhe; Inhalt scrollt bei Überlauf.
- * Kein height:0 (kollabiert in manchen WebKit-/iframe-Kontexten).
- */
 .config-sidebar.config-card--summary .produktliste-scroll {
+  flex: 1 1 0%;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding-right: 6px;
   margin-right: -4px;
   scrollbar-gutter: stable;
@@ -2300,9 +2302,11 @@ body {
   margin: 0 auto;
 }
 
-/* Ohne min-height:0 schrumpft die Sidebar-Zelle nicht – flex-Scroll (Produktliste) bleibt kaputt */
+/* Sidebar-Zelle: min-height + max-Höhe wie Grid-Zeile, sonst height:100% im iframe oft unbestimmt → kein internes Scrollen */
 .configurator-grid > .config-sidebar.config-card--summary {
   min-height: 0;
+  max-height: var(--cfg-main-row-height);
+  align-self: stretch;
 }
 
 @media (max-width: 1100px) {
