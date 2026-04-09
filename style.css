@@ -1314,6 +1314,7 @@ body {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   padding-right: 6px;
+  padding-bottom: 16px;
   margin-right: -4px;
   scrollbar-gutter: stable;
 }
@@ -2306,9 +2307,11 @@ html.solar-embed {
   }
 }
 
-html.solar-embed .config-sidebar.config-card--summary .produktliste-scroll {
-  max-height: min(480px, calc(100vh - 320px));
-}
+/*
+ * Kein fixes max-height hier: sonst kann Label + Scroll-Max größer sein als der Flex-Slot
+ * → overflow:hidden auf .product-section schneidet Liste / Footer ab.
+ * Höhe kommt allein von Grid (--cfg-main-row-height) + Flex (min-height: 0).
+ */
 
 /* Einklappbare Top-Zeile (Eingaben + Hilfe) – mehr Höhe für Canvas/Sidebar wenn zu */
 .configurator-top-band {
@@ -2386,16 +2389,6 @@ html.solar-embed #solar-configurator.configurator-grid--top-collapsed {
 @media (min-width: 900px) {
   html.solar-embed #solar-configurator.configurator-grid--top-collapsed {
     --cfg-main-row-height: min(86vh, calc(100vh - 88px));
-  }
-}
-
-html.solar-embed #solar-configurator.configurator-grid--top-collapsed .config-sidebar.config-card--summary .produktliste-scroll {
-  max-height: min(520px, calc(100vh - 260px));
-}
-
-@media (min-width: 900px) {
-  html.solar-embed #solar-configurator.configurator-grid--top-collapsed .config-sidebar.config-card--summary .produktliste-scroll {
-    max-height: min(600px, calc(100vh - 240px));
   }
 }
 
@@ -2869,7 +2862,8 @@ html.solar-embed .planner {
 
 .config-sidebar.config-card--summary .config-detail-view,
 .config-sidebar.config-card--summary .config-overview {
-  padding-bottom: 100px;
+  /* Platz für .detail-buttons / .overview-buttons (position: absolute; bottom) */
+  padding-bottom: 132px;
 }
 
 .config-sidebar.config-card--summary .total-price {
