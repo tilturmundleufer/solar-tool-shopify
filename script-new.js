@@ -407,12 +407,23 @@
       return `${shopOrigin}/cart/${pathSeg}?${params.toString()}`;
     }
 
+    /**
+     * Im iframe darf die Cart-URL nicht mit window.location geladen werden (Shopify: frame-ancestors 'none').
+     * Zuerst postMessage an die Parent-Seite (Theme-Section solar-konfigurator.liquid), zusätzlich Versuch top.location.
+     */
     function redirectToShopifyCartPermalink(url) {
-      try {
-        window.top.location.assign(url);
-      } catch (_) {
-        window.location.assign(url);
+      if (window.self !== window.top) {
+        try {
+          window.parent.postMessage({ type: 'solar:cartRedirect', url: url }, '*');
+        } catch (_) {}
+        try {
+          window.top.location.href = url;
+          return;
+        } catch (_) {
+          return;
+        }
       }
+      window.location.href = url;
     }
 
     // ===== KUNDENTYP-MANAGEMENT =====

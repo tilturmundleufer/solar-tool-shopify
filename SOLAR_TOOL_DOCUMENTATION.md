@@ -91,7 +91,7 @@ Das Solar-Tool ist eine Web-Anwendung zur einfachen Konfiguration und Bestellung
 - **PDF-Erstellung** - Dynamische A4-Seiten via `html2canvas` + `jsPDF` (Template in `#pdf-root`)
 
 ### **Backend-Integration:**
-- **Shopify Online Store** – Warenkorb per **Cart-Permalink** (GET auf `/cart/{variant}:{qty},…` mit `storefront=true`); Weiterleitung mit `window.top.location.assign`.
+- **Shopify Online Store** – Warenkorb per **Cart-Permalink** (GET auf `/cart/{variant}:{qty},…` mit `storefront=true`); im **iframe** `postMessage` an die Shop-Seite + Listener in `solar-konfigurator.liquid` (Shopify blockt Einbettung per `frame-ancestors`), sonst `window.location` / `top`.
 - **Konfiguration im Client:** `window.SOLAR_SHOP_ORIGIN` (in `index.html`), keine Storefront-GraphQL-Route mehr.
 - **Webhook (kompakt)** - Übertragung nur essenzieller Daten (siehe unten)
 

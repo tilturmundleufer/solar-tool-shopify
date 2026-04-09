@@ -6,10 +6,9 @@
     2. Section im Theme Editor auf die Seite legen (z. B. „Solar-Konfigurator“-Seite)
 
   Warenkorb (Cart-Permalink):
-    Der Konfigurator leitet bei „In den Warenkorb“ per Cart-Permalink zum Theme-Warenkorb
-    (window.top). iframe und Button/Link: dafür muss auf Vercel window.SOLAR_SHOP_ORIGIN
-    (eure Shop-Origin) in index.html gesetzt sein. Der Tab verlässt dann die Shop-Seite
-    zugunsten von /cart im Shop. Siehe docs/THEME_BRIDGE.md
+    Bei iframe: Vercel sendet postMessage(solar:cartRedirect) an diese Seite; das Script unten
+    führt window.location zur Cart-URL aus (nicht im iframe – Shopify blockt frame-ancestors).
+    Auf Vercel: window.SOLAR_SHOP_ORIGIN in index.html. Siehe docs/THEME_BRIDGE.md
   ────────────────────────────────────────────────────────────────────────────
 {% endcomment %}
 
@@ -28,7 +27,7 @@
   {% endif %}
 
   {% if section.settings.display_mode == 'iframe' %}
-    {%- comment -%} iframe: nach „Warenkorb“ Weiterleitung zum Shop-/cart (Permalink, top window). ── {%- endcomment -%}
+    {%- comment -%} iframe: Warenkorb-URL per postMessage + Script unten (nicht Cart im iframe laden). ── {%- endcomment -%}
     <div class="solar-konfigurator-iframe-wrapper" style="position: relative; width: 100%; min-height: {{ section.settings.iframe_height }}px; border: none;">
       <iframe
         src="{{ section.settings.konfigurator_url }}"
@@ -65,6 +64,26 @@
       {% endif %}
     </div>
   {% endif %}
+
+  {% if section.settings.konfigurator_url != blank %}
+    <script>
+      (function () {
+        var cfgUrl = {{ section.settings.konfigurator_url | json }};
+        window.addEventListener('message', function (event) {
+          if (!event.data || event.data.type !== 'solar:cartRedirect' || typeof event.data.url !== 'string')
+            return;
+          var allowedOrigin = '';
+          try {
+            allowedOrigin = new URL(cfgUrl).origin;
+          } catch (e) {
+            return;
+          }
+          if (!allowedOrigin || event.origin !== allowedOrigin) return;
+          window.location.href = event.data.url;
+        });
+      })();
+    </script>
+  {% endif %}
 </section>
 
 <style>
@@ -99,7 +118,7 @@
     },
     {
       "type": "paragraph",
-      "content": "Nach „In den Warenkorb“: Weiterleitung per Cart-Permalink zum Shopify-Theme-Warenkorb (ganzer Tab). Auf Vercel index.html: window.SOLAR_SHOP_ORIGIN auf eure Shop-URL setzen (ohne Slash am Ende). Details: docs/THEME_BRIDGE.md"
+      "content": "iframe: postMessage vom Konfigurator – diese Section enthält den Listener (Theme-Datei aktuell halten). Vercel index.html: SOLAR_SHOP_ORIGIN = Shop-URL. Konfigurator-URL muss exakt der iframe-src entsprechen (Origin-Check). docs/THEME_BRIDGE.md"
     },
     {
       "type": "select",

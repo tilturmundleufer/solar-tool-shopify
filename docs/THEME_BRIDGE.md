@@ -11,7 +11,9 @@ Referenz: [Shopify: Create cart permalinks](https://shopify.dev/docs/apps/checko
 1. Kunde konfiguriert auf **Vercel-Origin**.
 2. Beim Hinzufügen baut das Tool eine URL der Form  
    `https://EURE-SHOP-DOMAIN/cart/{variantId}:{qty},…?storefront=true&note=…&attributes[customer_type]=…`
-3. **`window.top.location.assign(url)`** – der **gesamte Browser-Tab** wechselt zum Shop; der **Online-Store-Warenkorb** (Theme `/cart`, Mini-Cart) enthält die Zeilen.
+3. **Navigation:**
+   - **iframe:** Shopify setzt `frame-ancestors 'none'` – die Cart-Seite darf **nicht** im iframe geladen werden. Der Konfigurator sendet deshalb **`postMessage`** (`type: solar:cartRedirect`, `url`) an die **Shop-Seite**; die Section `solar-konfigurator.liquid` enthält einen Listener und setzt `window.location.href` (ganzer Tab zum Warenkorb). Zusätzlich wird `window.top.location` versucht, falls der Browser es erlaubt.
+   - **Voller Tab auf Vercel** (kein iframe): direkt `window.location.href = url`.
 
 `storefront=true` sorgt dafür, dass Kunden im **Theme-Warenkorb** landen (nicht direkt im Checkout).
 
@@ -33,7 +35,7 @@ Referenz: [Shopify: Create cart permalinks](https://shopify.dev/docs/apps/checko
 
 | Modus | Verhalten |
 |-------|-----------|
-| **iframe** | Konfigurator eingebettet; „Warenkorb“ **verlässt** die Shop-Seite und öffnet den **Shop-Warenkorb** im selben Tab (Top-Navigation). |
+| **iframe** | Konfigurator eingebettet; „Warenkorb“ per **postMessage** + Parent-Navigation zum **Shop-Warenkorb** (aktuelle `solar-konfigurator.liquid` im Theme erforderlich). |
 | **Button / Link** | Nutzer arbeiten auf Vercel; bei „Warenkorb“ ebenfalls **Weiterleitung** zur Shop-`/cart`-URL (gleiches Permalink-Verhalten). |
 
 ---
