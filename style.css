@@ -1289,6 +1289,7 @@ body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #717171;
+  flex-shrink: 0;
 }
 
 .product-section h4:not(.product-section-label) {
@@ -1299,13 +1300,15 @@ body {
 }
 
 /*
- * Produktliste: kein height:0 (iframe/WebKit + display:contents sonst „leere“ Liste).
- * flex:1 + min-height:0 genügt, damit der Bereich scrollt, sobald die Sidebar-Höhe fix ist.
+ * Produktliste: height:0 + flex:1 verteilt die Höhe im Column-Flex; sonst min-height:auto
+ * (bes. Grid-Zelle) verhindert Schrumpfen → Liste wird abgeschnitten statt scrollbar.
  */
 .config-sidebar.config-card--summary .produktliste-scroll {
   flex: 1 1 0%;
   min-height: 0;
+  height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding-right: 6px;
@@ -2295,6 +2298,11 @@ body {
   align-items: stretch;
   max-width: 1440px;
   margin: 0 auto;
+}
+
+/* Ohne min-height:0 schrumpft die Sidebar-Zelle nicht – flex-Scroll (Produktliste) bleibt kaputt */
+.configurator-grid > .config-sidebar.config-card--summary {
+  min-height: 0;
 }
 
 @media (max-width: 1100px) {
