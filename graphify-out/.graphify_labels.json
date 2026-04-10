@@ -1,0 +1,21 @@
+{
+  "0": "SolarGrid & Raster-UI",
+  "1": "Warenkorb & Artikel-Queues",
+  "2": "Shopify Permalink & Kern-Logik",
+  "3": "PDF-Generator & Layout",
+  "4": "Preise, VE & Rabattstufen",
+  "5": "Minified Bundle (script-new.min)",
+  "6": "Grid aufbauen & Liste",
+  "7": "CalculationManager Worker-Bridge",
+  "8": "Bulk-Auswahl Geometrie",
+  "9": "Multi-Config Persistenz",
+  "10": "BulkSelector Klasse",
+  "11": "Konfig-Liste bearbeiten",
+  "12": "BOM-Paletten & Erdungsband",
+  "13": "calculation-worker.js",
+  "14": "Spalten/Zeilen erweitern",
+  "15": "Docs, Theme-Bridge & Assets",
+  "16": "fetch-variant-ids Admin",
+  "17": "PDF API (pdf-export)",
+  "18": "PDF API Pfad-Duplikat"
+}

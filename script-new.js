@@ -279,6 +279,21 @@
     
     return Number.isFinite(applicablePrice) ? applicablePrice : 0;
   }
+
+  /** Nettopreis aus Stück-Mengen (identisch zu calculateConfigPrice pro Mengenobjekt; inkl. Staffelpreise). */
+  function sumPartsPrice(parts) {
+    let totalPrice = 0;
+    if (!parts) return 0;
+    Object.entries(parts).forEach(([partName, quantity]) => {
+      const q = Number(quantity) || 0;
+      if (q > 0) {
+        const packagesNeeded = Math.ceil(q / (VE[partName] || 1));
+        const pricePerPackage = getPackPriceForQuantity(partName, q);
+        totalPrice += packagesNeeded * pricePerPackage;
+      }
+    });
+    return totalPrice;
+  }
     
     const PRODUCT_NAME_MAP = {
       // Module und Paletten
@@ -3302,7 +3317,6 @@
         
         // Generate CSS for the grid
         const css = `.grid { 
-          --mod-image-zoom: 1.22;
           display: grid; 
           gap: var(--cell-gap); 
           grid-template-columns: repeat(var(--cols), var(--cell-size)); 
@@ -3321,13 +3335,13 @@
         .cell { position: relative; overflow: hidden; }
         .cell.selected { background-color: #d1d1d1; background-image: none; }
         .cell.selected::before {
-          content: ""; position: absolute; inset: -3px; border-radius: inherit;
-          background-image: url(solar-modul.jpeg); background-size: cover; background-position: center;
+          content: ""; position: absolute; inset: 0; border-radius: inherit;
+          background-image: url(solar-modul.jpeg); background-size: cover; background-position: center; background-repeat: no-repeat;
           pointer-events: none; z-index: 0;
-          transform: scale(var(--mod-image-zoom)); transform-origin: center center;
+          transform: none; transform-origin: center center;
         }
         .grid[data-layout="landscape"] .cell.selected::before {
-          transform: rotate(90deg) scale(calc(var(--mod-fill-scale, 1.42) * var(--mod-image-zoom)));
+          transform: rotate(90deg) scale(var(--mod-fill-scale, 1));
           transform-origin: center center;
         }`;
         
@@ -4137,18 +4151,11 @@
               const totalPriceEl = document.getElementById('overview-total-price');
               if (!totalPriceEl) return;
               
-              // Gesamtpreis: Immer frische Totals berechnen (nicht aus Cache)
+              // Gleiche Preislogik wie Konfigurationszeilen: Stück-Totals + Staffelpreise (nicht Pack × PRICE_MAP)
               let totalPrice = 0;
               try {
-                  const totals = this.computeAllTotalsSnapshot();
-                  Object.entries(totals || {}).forEach(([key, quantity]) => {
-                      const pricePerUnit = PRICE_MAP[key] || 0;
-                      totalPrice += (Number(quantity) || 0) * pricePerUnit;
-                  });
+                  totalPrice = sumPartsPrice(this.buildAggregatedPieceTotals());
               } catch (_) {}
-              
-              // HINWEIS: Zusatzprodukte sind bereits in computeAllTotalsSnapshot() enthalten
-              // calculateAdditionalProductsPrice() wird NICHT mehr addiert (verhindert Doppelberechnung)
               
               totalPriceEl.textContent = `${totalPrice.toFixed(2).replace('.', ',')} €`;
               // Subtitle: nur für Firmenkunden anzeigen, Text "exkl. MwSt"
@@ -4678,16 +4685,7 @@
           }
 
           calculateConfigPrice(config) {
-              const parts = this.getProductPartsForConfig(config);
-              let totalPrice = 0;
-              Object.entries(parts).forEach(([partName, quantity]) => {
-                  if (quantity > 0) {
-                      const packagesNeeded = Math.ceil(quantity / (VE[partName] || 1));
-                      const pricePerPackage = getPackPriceForQuantity(partName, quantity);
-                      totalPrice += packagesNeeded * pricePerPackage;
-                  }
-              });
-              return totalPrice;
+              return sumPartsPrice(this.getProductPartsForConfig(config));
           }
           
   
@@ -5312,7 +5310,21 @@
           delete parts.Kabelbinder;
           delete parts.BlechBohrschrauben;
 
-        const entries = Object.entries(parts).filter(([,v]) => v > 0);
+        const entries = Object.entries(parts).filter(([, v]) => v > 0);
+        const bomListOrder = [
+          'Solarmodul', 'UlicaSolarBlackJadeFlow', 'SolarmodulPalette', 'UlicaSolarBlackJadeFlowPalette',
+          'Schiene_360_cm', 'Schiene_240_cm', 'Schienenverbinder',
+          'Endklemmen', 'Mittelklemmen', 'Endkappen',
+          'Dachhaken', 'Schrauben', 'Tellerkopfschraube', 'Erdungsband'
+        ];
+        entries.sort(([a], [b]) => {
+          const ia = bomListOrder.indexOf(a);
+          const ib = bomListOrder.indexOf(b);
+          if (ia === -1 && ib === -1) return String(a).localeCompare(String(b));
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        });
         if (!entries.length) {
           if (this.listHolder) {
           this.listHolder.style.display = 'none';
@@ -7476,16 +7488,13 @@
         }
       }
   
-      // --- Vorab-Berechnung aller Produkt-Gesamtmengen ---
-      computeAllTotalsSnapshot() {
-        // Aggregiert alle Konfigurationen + Zusatzprodukte gemäß aktuellem UI-State
+      // --- Aggregierte Stück-Mengen (vor Pack-Rundung): Basis für Warenkorb + Übersichtspreis ---
+      buildAggregatedPieceTotals() {
         const totals = {};
         const add = (key, qty) => { if (!qty || qty <= 0) return; totals[key] = (totals[key] || 0) + qty; };
-  
-        // Durch alle Konfigurationen iterieren (Deep-Inputs aus gespeicherten Configs)
+
         for (let i = 0; i < (this.configs?.length || 0); i++) {
           const cfg = this.configs[i]; if (!cfg) continue;
-          // Temporär mit isolierten Daten rechnen
           const originalSel = this.selection; const originalRows = this.rows; const originalCols = this.cols;
           const originalOrV = this.orV && this.orV.checked;
           const originalErdungsband = this.erdungsband && this.erdungsband.checked;
@@ -7496,7 +7505,6 @@
             this.selection = (cfg.selection || []).map(r => Array.isArray(r) ? r.slice() : r);
             this.rows = cfg.rows; this.cols = cfg.cols;
             if (this.orV) { this.orV.checked = (cfg.orientation === 'vertical'); }
-            // KRITISCH: Config-spezifische Werte temporär setzen!
             if (this.wIn) { this.wIn.value = cfg.cellWidth || 179; }
             if (this.hIn) { this.hIn.value = cfg.cellHeight || 113; }
             if (this.erdungsband) { this.erdungsband.checked = cfg.erdungsband || false; }
@@ -7513,80 +7521,70 @@
             if (this.ulicaModule) { this.ulicaModule.checked = originalUlica; }
           }
         }
-  
-        // Zusatzprodukte global nachziehen (Huawei/BRC Optimierer, Erdungsband, Quetsch etc.)
+
         try {
-          // MC4 Stecker: Berechne basierend auf Gesamtzahl Module über ALLE Konfigurationen
           const mc4El = this.getCachedElement('mc4', 'mc4');
           if (mc4El?.checked) {
             const totalModuleCount = this.configs.reduce((total, config) => {
               return total + (config.selection || []).flat().filter(v => v).length;
             }, 0);
-            // 1 Packung MC4 Stecker (50 Stück) pro 30 Module
             const mc4Packs = Math.ceil(totalModuleCount / 30);
             if (mc4Packs > 0) {
-              // Speichere in Stück-Basis (Pack × 50) für korrekte Mengenberechnung
               const veMc4 = VE.MC4_Stecker || 50;
               add('MC4_Stecker', mc4Packs * veMc4);
             }
           }
-          
-          // Solarkabel: 1x wenn Checkbox aktiv (gecacht)
+
           const solarkabelEl = this.getCachedElement('solarkabel', 'solarkabel');
           if (solarkabelEl?.checked) {
             add('Solarkabel', 1);
           }
-          
-          // Holzunterleger: 1x wenn Checkbox aktiv (gecacht)
+
           const holzEl = this.getCachedElement('holz', 'holz');
           if (holzEl?.checked) {
             add('Holzunterleger', 1);
           }
-          
-          // Optimierer: Menge aus UI (gecacht)
+
           const hCb = this.getCachedElement('huaweiOpti', 'huawei-opti');
           const bCb = this.getCachedElement('brcOpti', 'brc-opti');
           const qEl = this.getCachedElement('optiQty', 'opti-qty');
           const optiQty = Math.max(1, parseInt(qEl && qEl.value || '1', 10));
           if (hCb && hCb.checked) add('HuaweiOpti', optiQty);
           if (bCb && bCb.checked) add('BRCOpti', optiQty);
-          
-          // Kabelbinder: 1x wenn Checkbox aktiv (gecacht)
+
           const kabelbinderEl = this.getCachedElement('kabelbinder', 'kabelbinder');
           if (kabelbinderEl?.checked) {
             add('Kabelbinder', 1);
           }
-          
-          // Ringkabelschuhe: 1x wenn Checkbox aktiv (gecacht)
+
           const quetschEl = this.getCachedElement('quetschkabelschuhe', 'quetschkabelschuhe');
           if (quetschEl?.checked) {
             add('Ringkabelschuhe', 1);
           }
-          
-          // Erdungsband: Wird bereits in calculatePartsSync() pro Config berechnet (Zeile 5113-5115)
-          // KEINE zusätzliche Berechnung hier - vermeidet Dopplung!
-          
-          // Blech-Bohrschrauben: 1x wenn IRGENDEINE Config Erdungsband hat
-          // WICHTIG: Nicht aus UI-State lesen, sondern aus totals.Erdungsband!
+
           if (totals.Erdungsband && totals.Erdungsband > 0) {
             add('BlechBohrschrauben', 1);
           }
         } catch(_) {}
-  
-      // Tellerkopfschraube 2 × Dachhaken (falls nicht bereits global konsistent)
-      if (totals.Dachhaken && !totals.Tellerkopfschraube) add('Tellerkopfschraube', totals.Dachhaken * 2);
-  
-      // Modul-Inklusionsregeln gemäß UI-Checkboxen anwenden
-      try {
-        const includeModules = this.incM ? this.incM.checked !== false : true; // default true
-        const ulicaEnabled = this.ulicaModule ? this.ulicaModule.checked === true : false;
-        if (!includeModules) delete totals.Solarmodul;
-        if (!ulicaEnabled) delete totals.UlicaSolarBlackJadeFlow;
-      } catch(_) {}
-  
-      // Globale Palettenbündelung über alle Konfigurationen anwenden (36er)
-      try { this.bundleTotalModulesIntoPallets(totals); } catch(_) {}
-  
+
+        if (totals.Dachhaken && !totals.Tellerkopfschraube) add('Tellerkopfschraube', totals.Dachhaken * 2);
+
+        try {
+          const includeModules = this.incM ? this.incM.checked !== false : true;
+          const ulicaEnabled = this.ulicaModule ? this.ulicaModule.checked === true : false;
+          if (!includeModules) delete totals.Solarmodul;
+          if (!ulicaEnabled) delete totals.UlicaSolarBlackJadeFlow;
+        } catch(_) {}
+
+        try { this.bundleTotalModulesIntoPallets(totals); } catch(_) {}
+
+        return totals;
+      }
+
+      // --- Vorab-Berechnung aller Produkt-Gesamtmengen (Pack-Mengen für Warenkorb) ---
+      computeAllTotalsSnapshot() {
+        const totals = this.buildAggregatedPieceTotals();
+
       // In Pack-Mengen (Stückzahl der zu sendenden Produkte) umwandeln
       const sendTotals = {};
       try {

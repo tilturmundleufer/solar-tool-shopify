@@ -1,0 +1,24 @@
+---
+description: Wissensgraph (graphify) – Artefakte pflegen und bei Bedarf einlesen
+alwaysApply: true
+---
+
+# Graphify-Output im Repo
+
+Der Ordner `graphify-out/` enthält den **Knowledge Graph** dieser Codebase (AST + kuratierte Doc-Kanten).
+
+## Wann du ihn nutzen musst
+
+- **Architektur-, Einbindungs- oder Querschnittsfragen** (Shopify, iframe, Worker, PDF, Warenkorb): Zuerst relevante Abschnitte aus `graphify-out/GRAPH_REPORT.md` lesen (God Nodes, Surprising Connections, Suggested Questions).
+- **Neue Features an mehreren Schichten** (z. B. Theme + `script-new.js` + Docs): Prüfen, ob `graphify-out/graph.json` oder der Report bereits Brücken-Knoten nennt; bei größeren Änderungen den Graph **aktualisieren** (Pipeline `/graphify` bzw. `graphify` CLI im Projektroot).
+
+## Pflege
+
+- **`graphify-out/graph.html`** – interaktiv im Browser öffnen für Navigation.
+- **`graphify-out/GRAPH_REPORT.md`** – lesbare Zusammenfassung; bei Re-Runs überschreiben lassen.
+- **`graphify-out/graph.json`** – maschinenlesbar (GraphRAG, Skripte).
+- **Nicht** die Zwischendateien (`.graphify_extract.json`, `.graphify_ast.json`, …) löschen, wenn der Nutzer eine nachvollziehbare Pipeline will; bei Bedarf neu generieren statt manuell editieren.
+
+## Rebuild
+
+Nach größeren Refactors oder vielen neuen Dateien: Graphify erneut auf `.` ausführen und diese Regel beachten.

@@ -423,7 +423,7 @@ body {
 }
 
 .grid {
-  --mod-image-zoom: 1.22;
+  /* Kein Extra-Zoom: cover + ggf. nur bei Quer-Zellen rotate + mod-fill-scale */
   display: grid;
   gap: var(--cell-gap);
   grid-template-columns: repeat(var(--cols), var(--cell-size));
@@ -463,7 +463,7 @@ body {
 .grid-cell.selected::before {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: 0;
   border-radius: inherit;
   background-image: url("solar-modul.jpeg");
   background-size: cover;
@@ -471,14 +471,14 @@ body {
   background-repeat: no-repeat;
   pointer-events: none;
   z-index: 0;
-  transform: scale(var(--mod-image-zoom));
+  transform: none;
   transform-origin: center center;
 }
 
-/* Hochkant-Zellen: Zoom; Quer-Zellen: Foto 90° + Diagonal-Skalierung */
+/* Hochkant-Zelle (portrait): Bild natürlich gerade, genau ein Cover pro Zelle */
+/* Quer-Zelle (landscape): Modulfoto um 90° mit Zell-AR auffüllen (ohne zweiten Zoom) */
 .grid[data-layout="landscape"] .grid-cell.selected::before {
-  transform: rotate(90deg)
-    scale(calc(var(--mod-fill-scale, 1.42) * var(--mod-image-zoom)));
+  transform: rotate(90deg) scale(var(--mod-fill-scale, 1));
   transform-origin: center center;
 }
 
@@ -595,7 +595,7 @@ body {
 .cell.selected::before {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: 0;
   border-radius: inherit;
   background-image: url("solar-modul.jpeg");
   background-size: cover;
@@ -603,13 +603,12 @@ body {
   background-repeat: no-repeat;
   pointer-events: none;
   z-index: 0;
-  transform: scale(var(--mod-image-zoom));
+  transform: none;
   transform-origin: center center;
 }
 
 .grid[data-layout="landscape"] .cell.selected::before {
-  transform: rotate(90deg)
-    scale(calc(var(--mod-fill-scale, 1.42) * var(--mod-image-zoom)));
+  transform: rotate(90deg) scale(var(--mod-fill-scale, 1));
   transform-origin: center center;
 }
 
@@ -672,13 +671,17 @@ body {
 .preview-grid-cell.selected::after {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: 0;
   border-radius: inherit;
   background: url("solar-modul.jpeg") center / cover no-repeat;
-  transform: scale(var(--mod-image-zoom, 1.22));
+  transform: none;
   transform-origin: center center;
   z-index: 0;
   pointer-events: none;
+}
+
+.preview-grid[data-layout="landscape"] .preview-grid-cell.selected::after {
+  transform: rotate(90deg) scale(var(--mod-fill-scale, 1));
 }
 
 
@@ -1283,6 +1286,7 @@ body {
 .config-sidebar.config-card--summary .product-section {
   flex: 1 1 0%;
   min-height: 0;
+  height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1308,6 +1312,12 @@ body {
 .config-sidebar.config-card--summary .produktliste-scroll {
   flex: 1 1 0%;
   min-height: 0;
+  /*
+   * Ohne begrenzte Höhe wächst dieser Flex-Block mit dem Listeninhalt mit; .product-section
+   * hat overflow:hidden → es wirkt wie „nur wenige Zeilen“, ohne Scrollbalken auf der Liste.
+   * height:0 + flex-grow erzwingt die nutzbare Resthöhe (bekanntes Flex-Scroll-Muster).
+   */
+  height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;

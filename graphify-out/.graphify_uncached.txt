@@ -1,0 +1,16 @@
+script-new.min.js
+calculation-worker.js
+script-new.js
+tools/fetch-variant-ids.js
+api/pdf-export.js
+AGENT_DEVELOPMENT_GUIDE.md
+AGENT_PROMPT_TEMPLATE.md
+PLACEHOLDER_EXAMPLES.md
+SOLAR_TOOL_DOCUMENTATION.md
+README.md
+ARCHITECTURE_GUIDELINES.md
+SMART_CONFIG_EXAMPLES.md
+docs/SHOPIFY_SETUP_ANLEITUNG.md
+docs/THEME_BRIDGE.md
+docs/STOREFRONT_SETUP.md
+solar-modul.jpeg
