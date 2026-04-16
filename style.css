@@ -175,7 +175,7 @@ html, body {
 
 body {
   font-family: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: #f3f4f6;
+  background: #ffffff;
   color: #111827;
   user-select: none;
   overflow-x: hidden;
@@ -1310,12 +1310,7 @@ body {
 
 .config-sidebar.config-card--summary .produktliste-scroll {
   flex: 1 1 0%;
-  min-height: 0;
-  /*
-   * Ohne begrenzte Höhe wächst dieser Flex-Block mit dem Listeninhalt mit; .product-section
-   * hat overflow:hidden → es wirkt wie „nur wenige Zeilen“, ohne Scrollbalken auf der Liste.
-   * (Wir entfernen height:0, damit der Scroll-Wrapper die Resthöhe zuverlässig füllt.)
-   */
+  max-height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
