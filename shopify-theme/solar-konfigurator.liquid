@@ -77,6 +77,22 @@
       (function () {
         var cfgUrl = {{ section.settings.konfigurator_url | json }};
         var sectionEl = document.getElementById('solar-konfigurator-section');
+        function isCartDrawerDebugEnabled() {
+          try {
+            if (window.SOLAR_DEBUG_CART_DRAWER === true) return true;
+            if (window.localStorage && window.localStorage.getItem('solar_debug_cart_drawer') === '1') return true;
+            return /(?:\?|&)solarCartDebug=1(?:&|$)/.test(window.location.search || '');
+          } catch (_) {
+            return false;
+          }
+        }
+        var cartDebug = isCartDrawerDebugEnabled();
+        function cartDebugLog(step, payload) {
+          if (!cartDebug || !window.console || typeof window.console.info !== 'function') return;
+          try {
+            window.console.info('[SolarCartBridge]', step, payload || {});
+          } catch (_) {}
+        }
         function allowedOrigin() {
           try {
             return new URL(cfgUrl).origin;
@@ -84,14 +100,94 @@
             return '';
           }
         }
+        function sendHandledAck(event) {
+          try {
+            if (event && event.source && typeof event.source.postMessage === 'function') {
+              event.source.postMessage({ type: 'solar:cartHandled' }, event.origin);
+              cartDebugLog('ack-sent', { origin: event.origin });
+            }
+          } catch (_) {}
+        }
+        function openConfiguredCartDrawer() {
+          var opened = false;
+          var drawer = document.querySelector('.cart-drawer[data-cart-drawer]');
+          var panel = drawer ? drawer.querySelector('.cart-drawer__panel') : null;
+
+          // Theme-spezifische Cart-Events
+          try {
+            document.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true, detail: { open: true, source: 'solar-konfigurator' } }));
+            document.dispatchEvent(new CustomEvent('cart:updated', { bubbles: true, detail: { source: 'solar-konfigurator' } }));
+            document.dispatchEvent(new CustomEvent('cart:open', { bubbles: true, detail: { source: 'solar-konfigurator' } }));
+            document.dispatchEvent(new CustomEvent('cart-drawer:open', { bubbles: true, detail: { source: 'solar-konfigurator' } }));
+            cartDebugLog('events-dispatched');
+          } catch (_) {}
+
+          // Versuche den vorhandenen Header-Trigger zu nutzen (öffnet Drawer in Theme-JS)
+          var trigger = document.querySelector('.header__cart-btn, .header__cart-icon-mobile');
+          if (trigger) {
+            try {
+              var clickEvt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+              var notCancelled = trigger.dispatchEvent(clickEvt);
+              if (!notCancelled) opened = true; // Theme hat Klick übernommen (typisch mit preventDefault)
+              cartDebugLog('header-trigger-dispatched', { notCancelled: notCancelled, opened: opened });
+            } catch (_) {}
+          } else {
+            cartDebugLog('header-trigger-missing');
+          }
+
+          // Direkter Fallback über bekannte Drawer-Struktur
+          if (drawer) {
+            try {
+              drawer.setAttribute('aria-hidden', 'false');
+              drawer.classList.add('is-open', 'open', 'active');
+              document.documentElement.classList.add('cart-drawer-open');
+              document.body.classList.add('cart-drawer-open');
+              if (panel && typeof panel.focus === 'function') panel.focus();
+              opened = true;
+              cartDebugLog('drawer-opened-via-dom', { selector: '.cart-drawer[data-cart-drawer]' });
+            } catch (_) {}
+          } else {
+            cartDebugLog('drawer-element-missing');
+          }
+
+          cartDebugLog('open-result', { opened: opened });
+          return opened;
+        }
+        async function tryDrawerCartFromPermalink(url) {
+          try {
+            cartDebugLog('permalink-fetch-start', { url: url });
+            await fetch(url, {
+              method: 'GET',
+              credentials: 'same-origin',
+              headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            cartDebugLog('permalink-fetch-success');
+          } catch (_) {
+            cartDebugLog('permalink-fetch-failed');
+            return false;
+          }
+          if (openConfiguredCartDrawer()) return true;
+          await new Promise(function (resolve) { setTimeout(resolve, 120); });
+          return openConfiguredCartDrawer();
+        }
         window.addEventListener('message', function (event) {
           var ao = allowedOrigin();
           if (!ao || event.origin !== ao) return;
           var d = event.data;
           if (!d || typeof d !== 'object') return;
+          cartDebugLog('message-received', { type: d.type, origin: event.origin });
 
           if (d.type === 'solar:cartRedirect' && typeof d.url === 'string') {
-            window.location.href = d.url;
+            sendHandledAck(event);
+            (async function () {
+              var opened = await tryDrawerCartFromPermalink(d.url);
+              if (!opened) {
+                cartDebugLog('fallback-full-cart-redirect', { url: d.url });
+                window.location.href = d.url;
+              } else {
+                cartDebugLog('drawer-opened-successfully');
+              }
+            })();
             return;
           }
 

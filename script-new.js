@@ -423,20 +423,37 @@
     }
 
     /**
-     * Im iframe darf die Cart-URL nicht mit window.location geladen werden (Shopify: frame-ancestors 'none').
-     * Zuerst postMessage an die Parent-Seite (Theme-Section solar-konfigurator.liquid), zusätzlich Versuch top.location.
+     * Im iframe darf die Cart-URL nicht direkt geladen werden (Shopify: frame-ancestors 'none').
+     * Stattdessen wird die Parent-Seite informiert (Theme-Section), die den Drawer öffnen kann.
+     * Falls kein aktuelles Theme-Snippet aktiv ist, erfolgt nach kurzer Zeit ein Redirect-Fallback.
      */
     function redirectToShopifyCartPermalink(url) {
       if (window.self !== window.top) {
+        let handledByParent = false;
+        let fallbackTimer = null;
+        const onParentMessage = (event) => {
+          if (event.source !== window.parent) return;
+          const data = event.data;
+          if (!data || typeof data !== 'object') return;
+          if (data.type !== 'solar:cartHandled') return;
+          handledByParent = true;
+          if (fallbackTimer) clearTimeout(fallbackTimer);
+          window.removeEventListener('message', onParentMessage);
+        };
+        window.addEventListener('message', onParentMessage);
         try {
           window.parent.postMessage({ type: 'solar:cartRedirect', url: url }, '*');
         } catch (_) {}
-        try {
-          window.top.location.href = url;
-          return;
-        } catch (_) {
-          return;
-        }
+        fallbackTimer = setTimeout(() => {
+          if (handledByParent) return;
+          window.removeEventListener('message', onParentMessage);
+          try {
+            window.top.location.href = url;
+          } catch (_) {
+            window.location.href = url;
+          }
+        }, 1200);
+        return;
       }
       window.location.href = url;
     }
