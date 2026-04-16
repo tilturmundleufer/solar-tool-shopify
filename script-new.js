@@ -6660,8 +6660,16 @@
       addPartsListToCart(parts) {
         // Totals aus Cache verwenden (falls vorhanden), sonst live berechnen
         let totals = this.loadTotalsFromCache() || null;
+        let computedViaSnapshot = false;
         if (!totals) {
-          try { totals = this.computeAllTotalsSnapshot(); this.saveTotalsToCache(totals); } catch(_) { totals = parts || {}; }
+          try {
+            // computeAllTotalsSnapshot() liefert bereits PACK-Mengen (Cart-Quantities),
+            // addAllToShopifyCart() erwartet dagegen ROH-Mengen und rechnet erneut in Packs um.
+            // Daher transformieren wir Snapshot-Qty zurück in Rohwerte (qty * VE).
+            totals = this.computeAllTotalsSnapshot();
+            computedViaSnapshot = true;
+            this.saveTotalsToCache(totals);
+          } catch(_) { totals = parts || {}; }
         }
         
         // Nur Produkte mit Menge > 0
@@ -6669,6 +6677,13 @@
         if (!entries.length) {
           console.warn('[SolarGrid] Keine Produkte zum Hinzufügen');
           return;
+        }
+
+        if (computedViaSnapshot && totals && typeof totals === 'object') {
+          Object.keys(totals).forEach((k) => {
+            const ve = VE[k] || 1;
+            totals[k] = (Number(totals[k]) || 0) * ve;
+          });
         }
         
         console.log('[SolarGrid] Füge Produkte zum Shopify-Warenkorb hinzu:', entries.length);
