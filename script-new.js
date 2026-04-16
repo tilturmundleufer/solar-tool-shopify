@@ -4048,15 +4048,25 @@
                   ? this.configs[this.currentConfig]
                   : null;
               if (cfg) {
-                // Live-Grid nutzt immer this.selection (nach loadConfig ist das eine Kopie von cfg;
-                // BulkSelector/Drag aktualisieren nur this.selection — cfg.selection wäre sonst veraltet).
-                const selection = Array.isArray(this.selection)
-                  ? this.selection
-                  : (Array.isArray(cfg.selection) ? cfg.selection : []);
+                // Live-Grid nutzt normalerweise this.selection. Falls dieses Array aber leer ist
+                // oder nicht mehr zu den Config-Dimensionen passt, auf die gespeicherte Config
+                // zurückfallen, damit die Produktliste nicht fälschlich leer gerendert wird.
+                const liveSelection = Array.isArray(this.selection) ? this.selection : null;
+                const cfgSelection = Array.isArray(cfg.selection) ? cfg.selection : [];
+                const cfgRows = Number(cfg.rows || this.rows || 0);
+                const cfgCols = Number(cfg.cols || this.cols || 0);
+                const liveMatchesShape =
+                  !!liveSelection &&
+                  liveSelection.length === cfgRows &&
+                  (cfgRows === 0 || !Array.isArray(liveSelection[0]) || liveSelection[0].length === cfgCols);
+                const liveHasAnyRows = !!liveSelection && liveSelection.length > 0;
+                const selection = liveMatchesShape && liveHasAnyRows
+                  ? liveSelection
+                  : cfgSelection;
                 return {
                   selection,
-                  cols: Number(cfg.cols || this.cols),
-                  rows: Number(cfg.rows || this.rows),
+                  cols: cfgCols,
+                  rows: cfgRows,
                   cellWidth: Number(cfg.cellWidth || parseFloat(this.wIn?.value || '179')),
                   cellHeight: Number(cfg.cellHeight || parseFloat(this.hIn?.value || '113')),
                   orientation: cfg.orientation || (this.orV?.checked ? 'vertical' : 'horizontal'),
