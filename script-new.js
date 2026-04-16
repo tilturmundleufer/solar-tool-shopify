@@ -6660,7 +6660,9 @@
       addPartsListToCart(parts) {
         // Totals aus Cache verwenden (falls vorhanden), sonst live berechnen
         let totals = this.loadTotalsFromCache() || null;
-        let computedViaSnapshot = false;
+        // computeAllTotalsSnapshot() und der Cache liefern bereits PACK-Mengen (Cart-Quantities).
+        // addAllToShopifyCart() erwartet dagegen ROH-Mengen und rechnet nochmal in Packs um.
+        let computedViaSnapshot = !!totals;
         if (!totals) {
           try {
             // computeAllTotalsSnapshot() liefert bereits PACK-Mengen (Cart-Quantities),
