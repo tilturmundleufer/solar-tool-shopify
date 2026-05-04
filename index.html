@@ -290,22 +290,21 @@
           </div>
         </div>
 
-        <!-- Produktliste (nur Liste scrollt, Label fix) -->
+        <!-- Produktliste + Gesamt in einem Scroll-Bereich (letzte Zeilen nie von der Summen-Zeile abgeschnitten) -->
         <div class="product-section">
           <h4 class="product-section-label">Produktliste</h4>
           <div class="produktliste-scroll">
             <div id="produktliste" class="produktliste"></div>
+            <!-- Gesamt mit in denselben Scroll-Bereich: letzte Zeilen der Liste nicht von der Kante zur Summe abgeschnitten -->
+            <div class="total-section total-section--in-produktliste">
+              <div class="total-line">
+                <span class="total-label">Gesamt</span>
+                <span id="current-total-price" class="total-price">0,00 €</span>
+              </div>
+              <div class="total-subtitle">exkl. MwSt</div>
+              <p class="total-disclaimer total-disclaimer--center">Der sichtbare Preis ist eine Vorberechnung; im Warenkorb kann der Preis durch Mindestmengen oder Rabatte abweichen.</p>
+            </div>
           </div>
-        </div>
-
-        <!-- Gesamt-Preis -->
-        <div class="total-section">
-          <div class="total-line">
-            <span class="total-label">Gesamt</span>
-            <span id="current-total-price" class="total-price">0,00 €</span>
-          </div>
-          <div class="total-subtitle">exkl. MwSt</div>
-          <p class="total-disclaimer total-disclaimer--center">Der sichtbare Preis ist eine Vorberechnung; im Warenkorb kann der Preis durch Mindestmengen oder Rabatte abweichen.</p>
         </div>
 
         <!-- Action Buttons -->
