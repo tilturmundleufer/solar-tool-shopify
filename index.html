@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <!-- jsPDF/html2canvas werden bei PDF-Export nachgeladen (script-new.js: ensureSolarPdfLibs) -->
+  <!-- PDF-Generierung: jsPDF + html2canvas (SolarPDFGenerator) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <script>
     // Online-Store-Warenkorb: Cart-Permalink + Weiterleitung (storefront=true). Ohne diese Origin kein „In den Warenkorb“.
     // Primary Domain oder *.myshopify.com, ohne abschließenden Slash. Im Shopify-Theme ggf. vor iframe identisch setzen.
@@ -195,7 +197,7 @@
             <a class="help-phone" href="tel:+4989123456789">+49 89 123 456 789</a>
           </div>
         </div>
-        <a class="btn btn-video" href="#" id="help-video-btn">Jetzt Erklärvideo anschauen</a>
+        <button type="button" class="btn btn-video" id="ukc-open-video">Jetzt Erklärvideo anschauen</button>
       </section>
         </div>
       </div>
@@ -448,5 +450,99 @@
       </footer>
     </div>
   </div>
+
+  <!-- Erklärvideo (YouTube) – über dem Konfigurator, iframe-tauglich -->
+  <div id="ukc-video-modal" class="ukc-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ukc-video-modal-title" aria-hidden="true">
+    <div class="ukc-modal-content">
+      <h2 id="ukc-video-modal-title" class="visually-hidden">Erklärvideo</h2>
+      <button type="button" class="ukc-modal-close" id="ukc-close-video" aria-label="Schließen">&times;</button>
+      <div class="ukc-video-wrapper">
+        <iframe
+          data-category="functional"
+          id="ukc-video-iframe"
+          title="YouTube: Erklärvideo Konfigurator"
+          src="https://www.youtube-nocookie.com/embed/ZuQ06m33CuE?enablejsapi=1&amp;rel=0"
+          width="560"
+          height="315"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const openButton = document.getElementById('ukc-open-video');
+      const modal = document.getElementById('ukc-video-modal');
+      const closeButton = document.getElementById('ukc-close-video');
+      let player = null;
+      let ytApiLoading = false;
+
+      if (!openButton || !modal || !closeButton) return;
+
+      function loadYouTubePlayer() {
+        if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
+          createPlayer();
+          return;
+        }
+        if (ytApiLoading) return;
+        ytApiLoading = true;
+        const prev = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = function () {
+          if (typeof prev === 'function') prev();
+          createPlayer();
+        };
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      }
+
+      function createPlayer() {
+        try {
+          if (player || typeof YT === 'undefined' || !YT.Player) return;
+          player = new YT.Player('ukc-video-iframe');
+        } catch (e) { /* optional */ }
+      }
+
+      function openModal() {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('ukc-modal-open');
+        document.body.classList.add('ukc-modal-open');
+        closeButton.focus();
+        if (!player) loadYouTubePlayer();
+      }
+
+      function closeModal() {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('ukc-modal-open');
+        document.body.classList.remove('ukc-modal-open');
+        try {
+          if (player && typeof player.stopVideo === 'function') player.stopVideo();
+        } catch (e) { /* */ }
+      }
+
+      openButton.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal();
+      });
+
+      closeButton.addEventListener('click', closeModal);
+      modal.addEventListener('click', function (event) {
+        if (event.target === modal) closeModal();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+          e.preventDefault();
+          closeModal();
+          openButton.focus();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

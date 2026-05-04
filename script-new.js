@@ -821,7 +821,9 @@
           s.onerror = () => rej(new Error('Script failed: ' + src));
           document.head.appendChild(s);
         });
-        Promise.all([loadScript(PDF_CDN_JSPDF), loadScript(PDF_CDN_HTML2CANVAS)])
+        // Sequentiell laden: paralleles Promise.all kann in seltenen Fällen die Global-Initialisierung verschlucken
+        loadScript(PDF_CDN_JSPDF)
+          .then(() => loadScript(PDF_CDN_HTML2CANVAS))
           .then(resolve)
           .catch(reject);
       });
