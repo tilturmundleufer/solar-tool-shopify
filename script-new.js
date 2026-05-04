@@ -6050,11 +6050,12 @@
           
           const totalPrice = this.calculateConfigPrice(cfg);
           const canDelete = this.configs.length >= 2;
-          
+          /* Klammern: Zeilenpreis = isoliert pro Konfiguration; »Gesamt« = sumPartsPrice(buildAggregatedPieceTotals()) mit gemeinsamen Pack-/Staffelmengen + globale Zusatzprodukte — Summe der Zeilen ≠ Gesamt. */
+
           div.innerHTML = `
             <div class="config-item-info">
               <div class="config-item-name">${cfg.name || `Konfiguration #${idx + 1}`}</div>
-              <div class="config-item-price">${totalPrice.toFixed(2).replace('.', ',')} €</div>
+              <div class="config-item-price" title="Je Konfiguration isoliert berechnet. »Gesamt« unten nutzt zusammengefasste Mengen (Pack/Staffel) und globale Zusatzprodukte.">(${totalPrice.toFixed(2).replace('.', ',')} €)</div>
             </div>
             <div class="config-item-actions">
               <button class="icon-btn" onclick="solarGrid.editConfigNameInList(${idx})" title="Bearbeiten">
