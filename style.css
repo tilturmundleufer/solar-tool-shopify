@@ -423,7 +423,9 @@ body {
 }
 
 .grid {
-  /* Kein Extra-Zoom: cover + ggf. nur bei Quer-Zellen rotate + mod-fill-scale */
+  /* Modultextur: porträtiertes JPEG (ohne weissen Bildrand), Zelle füllen mit
+     background-size: cover (Seitenverhältnis erhalten, längere Seite wird beschnitten).
+     data-layout=landscape: ::before um 90° drehen + mod-fill-scale für Vollbedeckung. */
   display: grid;
   gap: var(--cell-gap);
   grid-template-columns: repeat(var(--cols), var(--cell-size));
