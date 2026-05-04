@@ -1320,7 +1320,8 @@ body {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   padding-right: 6px;
-  padding-bottom: 28px;
+  /* Abstand über der festen Gesamt-Zeile, damit letzte Produktzeilen (z. B. Zweizeiler) nicht abgeschnitten wirken */
+  padding-bottom: 40px;
   margin-right: -4px;
   scrollbar-gutter: stable;
 }
@@ -1338,11 +1339,10 @@ body {
   flex-shrink: 0;
 }
 
-/* Innen in .produktliste-scroll: kein doppelter Außenabstand zur Scroll-Kante */
-.config-sidebar.config-card--summary .total-section--in-produktliste {
+/* Detail-Sidebar: Disclaimer darf nicht unter die absolut positionierten Buttons rutschen */
+.config-sidebar.config-card--summary .total-section--detail {
   margin-bottom: 0;
   padding-bottom: 4px;
-  background: #ffffff;
 }
 
 .total-line {
@@ -2873,9 +2873,12 @@ html.solar-embed .planner {
   text-align: left;
 }
 
-.config-sidebar.config-card--summary .config-detail-view,
+.config-sidebar.config-card--summary .config-detail-view {
+  /* Höher als Übersicht: Platz für Gesamt + mehrzeiligen Disclaimer über .detail-buttons */
+  padding-bottom: 180px;
+}
+
 .config-sidebar.config-card--summary .config-overview {
-  /* Platz für .detail-buttons / .overview-buttons (position: absolute; bottom) */
   padding-bottom: 132px;
 }
 
