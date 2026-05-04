@@ -1454,7 +1454,6 @@ body {
   flex: 1 1 0%;
   min-height: 0;
   margin-bottom: 14px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -1794,6 +1793,9 @@ body {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .config-item-actions .icon-btn {
