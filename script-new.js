@@ -161,7 +161,7 @@
     MC4_Stecker: 39.50,
     Solarkabel: 86.90,
     Holzunterleger: 17.50,
-    Ringkabelschuhe: 21.40,
+    Ringkabelschuhe: 18.50,
     BlechBohrschrauben: 24.70,
     Kabelbinder: 3.41,
     Erdungsband: 8.70,
@@ -185,33 +185,33 @@
     ],
     // Dachhaken und Klemmen
     Dachhaken: [
-      { minQuantity: 5, pricePerVE: 68.40 },
-      { minQuantity: 36, pricePerVE: 67.80 }
+      { minQuantity: 100, pricePerVE: 68.40 },
+      { minQuantity: 720, pricePerVE: 67.80 }
     ],
     Mittelklemmen: [
-      { minQuantity: 15, pricePerVE: 19.00 },
-      { minQuantity: 60, pricePerVE: 15.80 }
+      { minQuantity: 300, pricePerVE: 19.00 },
+      { minQuantity: 1200, pricePerVE: 15.80 }
     ],
     Endklemmen: [
-      { minQuantity: 15, pricePerVE: 19.00 },
-      { minQuantity: 50, pricePerVE: 15.80 }
+      { minQuantity: 300, pricePerVE: 19.00 },
+      { minQuantity: 1000, pricePerVE: 15.80 }
     ],
     Endkappen: [
-      { minQuantity: 6, pricePerVE: 6.50 },
-      { minQuantity: 20, pricePerVE: 6.00 }
+      { minQuantity: 300, pricePerVE: 6.50 },
+      { minQuantity: 1000, pricePerVE: 6.00 }
     ],
     Schienenverbinder: [
-      { minQuantity: 10, pricePerVE: 11.90 },
-      { minQuantity: 100, pricePerVE: 9.90 }
+      { minQuantity: 100, pricePerVE: 11.90 },
+      { minQuantity: 1000, pricePerVE: 9.90 }
     ],
     // Schrauben
     Schrauben: [
-      { minQuantity: 20, pricePerVE: 9.50 },
-      { minQuantity: 100, pricePerVE: 9.00 }
+      { minQuantity: 1000, pricePerVE: 9.50 },
+      { minQuantity: 5000, pricePerVE: 9.00 }
     ],
     Tellerkopfschraube: [
-      { minQuantity: 10, pricePerVE: 25.00 },
-      { minQuantity: 50, pricePerVE: 24.00 }
+      { minQuantity: 1000, pricePerVE: 25.00 },
+      { minQuantity: 5000, pricePerVE: 24.00 }
     ],
     // Solarmodule
     Solarmodul: [
@@ -224,8 +224,8 @@
     ],
     // Elektrik
     MC4_Stecker: [
-      { minQuantity: 20, pricePerVE: 34.50 },
-      { minQuantity: 60, pricePerVE: 32.50 }
+      { minQuantity: 1000, pricePerVE: 34.50 },
+      { minQuantity: 3000, pricePerVE: 32.50 }
     ],
     Solarkabel: [
       { minQuantity: 10, pricePerVE: 83.90 },
@@ -238,8 +238,8 @@
     ],
     // Unterkonstruktion
     Holzunterleger: [
-      { minQuantity: 10, pricePerVE: 14.50 },
-      { minQuantity: 40, pricePerVE: 14.00 }
+      { minQuantity: 500, pricePerVE: 14.50 },
+      { minQuantity: 2000, pricePerVE: 14.00 }
     ],
     // Optimierer (nur erste Stufe - keine zweite Schwelle in der Tabelle)
     HuaweiOpti: [
