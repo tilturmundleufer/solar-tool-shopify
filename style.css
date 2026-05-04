@@ -1254,12 +1254,18 @@ body {
   object-fit: contain;
 }
 
+/* Löschen: kein farbiger Kasten, Icon nutzt die volle Touch-Fläche (44×44) */
+.config-title-section .icon-btn.delete img {
+  width: 44px;
+  height: 44px;
+}
+
 .config-title-section .icon-btn.delete {
-  background: #fce7f3;
+  background: transparent;
 }
 
 .config-title-section .icon-btn.delete:hover {
-  background: #fbcfe8;
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .icon-btn:hover {
