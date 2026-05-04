@@ -1271,14 +1271,14 @@ body {
   color: #ff0000;
 }
 
-/* Product Section */
+/* Product Section – kein overflow:hidden: sonst werden letzte Listeneinträge am Übergang zur
+   Gesamtzeile oft abgeschnitten. Höhenbegrenzung über Flex (min-height:0) + .produktliste-scroll. */
 .product-section {
   flex: 1 1 auto;
   min-height: 0;
   margin-bottom: 14px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 /*
@@ -1290,7 +1290,6 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .config-sidebar.config-card--summary .product-section-label {
@@ -1331,12 +1330,15 @@ body {
   outline-offset: 2px;
 }
 
-/* Total Section */
+/* Total Section – weißer Untergrund + leichtes Stacking, falls die Liste optisch darüber reicht */
 .total-section {
   padding: 14px 0 0;
   border-top: 1px solid #e5e7eb;
   margin-bottom: 16px;
   flex-shrink: 0;
+  background: #ffffff;
+  position: relative;
+  z-index: 1;
 }
 
 /* Detail-Sidebar: Disclaimer darf nicht unter die absolut positionierten Buttons rutschen */
@@ -1379,7 +1381,7 @@ body {
   margin: 12px 0 0;
 }
 
-/* Detail Buttons */
+/* Detail Buttons – über der Gesamtzeile bleiben (gleicher Stacking-Kontext wie .total-section) */
 .detail-buttons {
   display: flex;
   flex-direction: column;
@@ -1391,6 +1393,7 @@ body {
   background: #ffffff;
   padding-top: 12px;
   border-top: 1px solid #e5e7eb;
+  z-index: 2;
 }
 
 .btn.outline {
@@ -1501,6 +1504,7 @@ body {
   padding-top: 12px;
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
+  z-index: 2;
 }
 
 /* Zusatzprodukte in Übersicht: mit Konfigs im .overview-main-scroll */
@@ -2321,9 +2325,9 @@ html.solar-embed {
 }
 
 /*
- * Kein fixes max-height hier: sonst kann Label + Scroll-Max größer sein als der Flex-Slot
- * → overflow:hidden auf .product-section schneidet Liste / Footer ab.
- * Höhe kommt allein von Grid (--cfg-main-row-height) + Flex (min-height: 0).
+ * Kein fixes max-height hier: sonst kann Label + Scroll-Max größer sein als der Flex-Slot.
+ * .product-section ohne overflow:hidden (siehe Produktliste); äußere Begrenzung: .config-detail-view.
+ * Scroll in .produktliste-scroll; Gesamt: background + z-index für saubere Überlagerung.
  */
 
 /* Einklappbare Top-Zeile (Eingaben + Hilfe) – mehr Höhe für Canvas/Sidebar wenn zu */
