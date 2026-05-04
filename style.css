@@ -1278,6 +1278,7 @@ body {
   margin-bottom: 14px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /*
@@ -1289,6 +1290,7 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .config-sidebar.config-card--summary .product-section-label {
@@ -1335,7 +1337,6 @@ body {
   border-top: 1px solid #e5e7eb;
   margin-bottom: 16px;
   flex-shrink: 0;
-  background: #ffffff;
 }
 
 /* Detail-Sidebar: Disclaimer darf nicht unter die absolut positionierten Buttons rutschen */
@@ -2320,9 +2321,9 @@ html.solar-embed {
 }
 
 /*
- * Kein fixes max-height hier: sonst kann Label + Scroll-Max größer sein als der Flex-Slot.
- * Scroll nur in .produktliste-scroll; .product-section ohne overflow:hidden (verdeckte Zeilen).
- * Höhe vom Grid (--cfg-main-row-height) + Flex (min-height: 0); Gesamt mit weißem Hintergrund.
+ * Kein fixes max-height hier: sonst kann Label + Scroll-Max größer sein als der Flex-Slot
+ * → overflow:hidden auf .product-section schneidet Liste / Footer ab.
+ * Höhe kommt allein von Grid (--cfg-main-row-height) + Flex (min-height: 0).
  */
 
 /* Einklappbare Top-Zeile (Eingaben + Hilfe) – mehr Höhe für Canvas/Sidebar wenn zu */
