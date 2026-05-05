@@ -34,7 +34,8 @@ function calculateParts(selection, rows, cols, cellWidth, cellHeight, orientatio
   const parts = {
     Solarmodul: 0, UlicaSolarBlackJadeFlow: 0, Endklemmen: 0, Mittelklemmen: 0,
     Dachhaken: 0, Schrauben: 0, Endkappen: 0,
-    Schienenverbinder: 0, Schiene_240_cm: 0, Schiene_360_cm: 0, Erdungsband: 0
+    Schienenverbinder: 0, Schiene_240_cm: 0, Schiene_360_cm: 0,
+    Erdungsband: 0, Tellerkopfschraube: 0
   };
 
   for (let y = 0; y < rows; y++) {

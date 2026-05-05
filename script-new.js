@@ -1350,14 +1350,15 @@
         const rows = [];
         const ADDITIONAL_KEYS = new Set(['MC4_Stecker', 'Solarkabel', 'Holzunterleger', 'Ringkabelschuhe', 'Kabelbinder', 'BlechBohrschrauben']);
         for (const [key, value] of Object.entries(parts || {})) {
-          if (value <= 0) continue;
+          const qty = Number(value);
+          if (!Number.isFinite(qty) || qty <= 0) continue;
           if (options.excludeAdditionalProducts && ADDITIONAL_KEYS.has(key)) continue;
           const ve = VE[key] || 1;
-          const packs = Math.ceil(value / ve);
-          const pricePerPack = getPackPriceForQuantity(key, value);
+          const packs = Math.ceil(qty / ve);
+          const pricePerPack = getPackPriceForQuantity(key, qty);
           const rowPrice = packs * pricePerPack;
           totalPrice += rowPrice;
-          rows.push({ key, value, ve, packs, rowPrice });
+          rows.push({ key, value: qty, ve, packs, rowPrice });
         }
         // Sortiere nach Produktname
         rows.sort((a, b) => a.key.localeCompare(b.key));
