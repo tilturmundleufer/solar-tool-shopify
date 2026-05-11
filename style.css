@@ -423,9 +423,8 @@ body {
 }
 
 .grid {
-  /* Modultextur: porträtiertes JPEG (ohne weissen Bildrand), Zelle füllen mit
-     background-size: cover (Seitenverhältnis erhalten, längere Seite wird beschnitten).
-     data-layout=landscape: ::before um 90° drehen + mod-fill-scale für Vollbedeckung. */
+  /* Modultextur: porträtiertes JPEG; Horizontal-Modus rotiert die Bildfläche,
+     nicht nur das Motiv, damit background-size: cover die Zelle zuverlässig füllt. */
   display: grid;
   gap: var(--cell-gap);
   grid-template-columns: repeat(var(--cols), var(--cell-size));
@@ -478,9 +477,14 @@ body {
 }
 
 /* Hochkant-Zelle (portrait): Bild natürlich gerade, genau ein Cover pro Zelle */
-/* Quer-Zelle (landscape): Modulfoto um 90° mit Zell-AR auffüllen (ohne zweiten Zoom) */
+/* Quer-Zelle (landscape): Bildfläche vertauschen und dann 90° drehen */
 .grid[data-layout="landscape"] .grid-cell.selected::before {
-  transform: rotate(90deg) scale(var(--mod-fill-scale, 1));
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: var(--cell-height);
+  height: var(--cell-width);
+  transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center center;
 }
 
@@ -610,7 +614,12 @@ body {
 }
 
 .grid[data-layout="landscape"] .cell.selected::before {
-  transform: rotate(90deg) scale(var(--mod-fill-scale, 1));
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: var(--cell-height);
+  height: var(--cell-size);
+  transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center center;
 }
 
@@ -683,7 +692,12 @@ body {
 }
 
 .preview-grid[data-layout="landscape"] .preview-grid-cell.selected::after {
-  transform: rotate(90deg) scale(var(--mod-fill-scale, 1));
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: var(--cell-height);
+  height: var(--cell-size);
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 
 

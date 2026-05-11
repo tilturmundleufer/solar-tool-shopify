@@ -3365,7 +3365,9 @@
           transform: none; transform-origin: center center;
         }
         .grid[data-layout="landscape"] .cell.selected::before {
-          transform: rotate(90deg) scale(var(--mod-fill-scale, 1));
+          inset: auto; top: 50%; left: 50%;
+          width: var(--cell-height); height: var(--cell-size);
+          transform: translate(-50%, -50%) rotate(90deg);
           transform-origin: center center;
         }`;
         
