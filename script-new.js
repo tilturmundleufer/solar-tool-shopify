@@ -3373,7 +3373,7 @@
           rows: this.rows,
           cellWidth: parseFloat(this.wIn.value),
           cellHeight: parseFloat(this.hIn.value),
-          orientation: this.orV.checked ? 'vertical' : 'horizontal',
+          orientation: this.isLayoutVertical() ? 'vertical' : 'horizontal',
           selection: this.selection,
           incM: this.incM.checked
           // Zusatzprodukte werden nicht mehr zu einzelnen Konfigurationen hinzugefügt
@@ -3542,7 +3542,7 @@
               rows: this.rows,
               cellWidth: parseFloat(this.wIn.value),
               cellHeight: parseFloat(this.hIn.value),
-              orientation: this.orV.checked ? 'vertical' : 'horizontal',
+              orientation: this.isLayoutVertical() ? 'vertical' : 'horizontal',
               selection: this.selection,
               incM: this.incM.checked,
               mc4: this.mc4.checked,
@@ -3566,15 +3566,14 @@
   
           // Temporär setzen für Berechnung
           const originalSelection = this.selection;
-          const originalOrientation = this.orV ? this.orV.checked : false;
+          const originalOrientationVertical = this.isLayoutVertical();
           const originalSolarkabel = this.solarkabel ? this.solarkabel.checked : false;
           const originalIncM = this.incM ? this.incM.checked : false;
           const originalMc4 = this.mc4 ? this.mc4.checked : false;
           const originalHolz = this.holz ? this.holz.checked : false;
           
           this.selection = currentConfig.selection;
-          if (this.orV) this.orV.checked = currentConfig.orientation === 'vertical';
-          if (this.orH) this.orH.checked = !(currentConfig.orientation === 'vertical');
+          this.setLayoutOrientation(currentConfig.orientation === 'vertical');
           if (this.solarkabel) this.solarkabel.checked = currentConfig.solarkabel;
           if (this.incM) this.incM.checked = currentConfig.incM;
           if (this.mc4) this.mc4.checked = currentConfig.mc4;
@@ -3590,8 +3589,7 @@
   
           // Ursprüngliche Werte wiederherstellen
           this.selection = originalSelection;
-          if (this.orV) this.orV.checked = originalOrientation;
-          if (this.orH) this.orH.checked = !originalOrientation;
+          this.setLayoutOrientation(originalOrientationVertical);
           if (this.solarkabel) this.solarkabel.checked = originalSolarkabel;
           if (this.incM) this.incM.checked = originalIncM;
           if (this.mc4) this.mc4.checked = originalMc4;
@@ -3840,15 +3838,7 @@
   
                   // Standard-Orientation nur für echte Default-Erstellung setzen
                   if (this.orH && this.orV) {
-                      this.orH.checked = false;
-                      this.orV.checked = true;
-                      // Synchronisiere mit den Orientation Buttons
-                      const orientHBtn = document.getElementById('orient-h');
-                      const orientVBtn = document.getElementById('orient-v');
-                      if (orientHBtn && orientVBtn) {
-                          orientVBtn.classList.add('active');
-                          orientHBtn.classList.remove('active');
-                      }
+                      this.setLayoutOrientation(true);
                   }
               }
               
@@ -4072,7 +4062,7 @@
                   rows: cfgRows,
                   cellWidth: Number(cfg.cellWidth || parseFloat(this.wIn?.value || '179')),
                   cellHeight: Number(cfg.cellHeight || parseFloat(this.hIn?.value || '113')),
-                  orientation: cfg.orientation || (this.orV?.checked ? 'vertical' : 'horizontal'),
+                  orientation: cfg.orientation || (this.isLayoutVertical() ? 'vertical' : 'horizontal'),
                   incM: cfg.incM === false ? false : true,
                   ulicaModule: !!cfg.ulicaModule
                 };
@@ -4083,7 +4073,7 @@
                 rows: this.rows,
                 cellWidth: parseFloat(this.wIn?.value || '179'),
                 cellHeight: parseFloat(this.hIn?.value || '113'),
-                orientation: this.orV?.checked ? 'vertical' : 'horizontal',
+                orientation: this.isLayoutVertical() ? 'vertical' : 'horizontal',
                 incM: (this.incM && this.incM.checked) !== false,
                 ulicaModule: document.getElementById('ulica-module')?.checked || false
               };
@@ -4854,18 +4844,42 @@
           
           // Event-Handler-Funktionen
           
-          // Hilfsfunktion für robuste Orientation-Button-Synchronisation
-          ensureOrientationButtonsSync() {
+          /**
+           * „Vertikal“ = #orient-v mit CSS-Klasse .active — das ist maßgeblich fürs Grid.
+           * Die Elemente sind <button>s; ihre .checked-Eigenschaft ist kein stabiler Browser-Zustand
+           * und kann von den .active-Klassen abweichen (z.B. nach Modultyp-Dropdown).
+           */
+          isLayoutVertical() {
+              try {
+                  const orientVBtn = document.getElementById('orient-v');
+                  const orientHBtn = document.getElementById('orient-h');
+                  if (!orientVBtn || !orientHBtn) return true;
+                  const vAct = orientVBtn.classList.contains('active');
+                  const hAct = orientHBtn.classList.contains('active');
+                  if (vAct && !hAct) return true;
+                  if (hAct && !vAct) return false;
+                  return true;
+              } catch (_) {
+                  return !!(this.orV && this.orV.checked);
+              }
+          }
+  
+          /** Synchronisiert .active auf Orientierungsbuttons und gleicht .checked (für bestehende Webhook-Schleifen) ab. */
+          setLayoutOrientation(isVertical) {
               const orientHBtn = document.getElementById('orient-h');
               const orientVBtn = document.getElementById('orient-v');
-              
               if (!orientHBtn || !orientVBtn || !this.orH || !this.orV) return;
-              
-              // Prüfe ob Buttons korrekt synchronisiert sind
-              const verticalUiActive = orientVBtn.classList.contains('active');
-              const radioVerticalChecked = this.orV.checked;
-              
-              if (verticalUiActive !== radioVerticalChecked) {
+              orientVBtn.classList.toggle('active', !!isVertical);
+              orientHBtn.classList.toggle('active', !isVertical);
+              this.orV.checked = !!isVertical;
+              this.orH.checked = !isVertical;
+          }
+          
+          // Hilfsfunktion für robuste Orientation-Button-Synchronisation
+          ensureOrientationButtonsSync() {
+              if (!this.orV || !this.orH) return;
+              const vertical = this.isLayoutVertical();
+              if (!!this.orV.checked !== vertical) {
                   this.syncOrientationButtons();
               }
           }
@@ -4877,11 +4891,14 @@
               if (selectedValue === '' || selectedValue === 'custom') {
                   // Kein Modul ausgewählt oder Benutzerdefiniert - Inputs freigeben
                   this.enableInputs();
+                  this.syncOrientationButtons();
                   this.updateSize();
+                  this.buildGrid();
                   this.buildList();
-              this.updateSummaryOnChange();
+                  this.updateSummaryOnChange();
                   // Alle Modul-Checkboxen abwählen
                   this.clearModuleCheckboxes();
+                  if (this.currentConfig !== null) this.updateConfig();
               } else if (this.moduleData[selectedValue]) {
                   // Modul ausgewählt - Werte setzen und Inputs sperren
                   const module = this.moduleData[selectedValue];
@@ -4893,12 +4910,15 @@
                       this.configs[this.currentConfig].cellHeight = module.height;
                   }
                   this.disableInputs();
+                  this.syncOrientationButtons();
                   this.updateSize();
+                  this.buildGrid();
                   this.buildList();
                   this.updateSummaryOnChange();
                   
                   // Keine Checkbox-Interaktion mehr - nur Dropdown-Werte setzen
                   this.clearModuleCheckboxes();
+                  if (this.currentConfig !== null) this.updateConfig();
               }
           }
           
@@ -4944,6 +4964,7 @@
               }
               
               // Grid und Berechnungen aktualisieren
+              this.syncOrientationButtons();
               this.updateSize();
               this.buildGrid();
               this.buildList();
@@ -4960,13 +4981,16 @@
           
           handleInputChange() {
               this.trackInteraction();
+              this.syncOrientationButtons();
               this.updateSize();
+              this.buildGrid();
               this.buildList();
               this.updateSummaryOnChange();
           }
           
           handleOrientationChange() {
               this.trackInteraction();
+              this.syncOrientationButtons();
               this.updateSize();
               this.buildGrid();
               this.buildList();
@@ -5012,58 +5036,28 @@
               if (this.orientationProcessing) return;
               this.orientationProcessing = true;
               
-              // Bestimme die neue Orientierung basierend auf dem Button, der den Handler ausgelöst hat
               const clickedBtn = e.currentTarget || e.target;
-              // orient-h = „Horizontal“, orient-v = „Vertikal“ (Beschriftung = Verhalten)
               const isVertical = clickedBtn === orientVBtn;
               
-              orientHBtn.classList.toggle('active', !isVertical);
-              orientVBtn.classList.toggle('active', isVertical);
-              
-              // Radio-Buttons synchronisieren
-              if (this.orV) this.orV.checked = isVertical;
-              if (this.orH) this.orH.checked = !isVertical;
+              this.setLayoutOrientation(isVertical);
               
               this.trackInteraction();
               
-              // Sofortige Grid-Updates ohne Verzögerung
               this.updateSize();
               this.buildGrid();
               
-              // Verzögerte Updates für Performance
               setTimeout(() => {
                   this.buildList();
                   this.updateSummaryOnChange();
                   this.orientationProcessing = false;
-                  // Zusätzliche Synchronisation für Robustheit
                   this.ensureOrientationButtonsSync();
-              }, 10); // Reduzierte Verzögerung für bessere Reaktionszeit
+                  if (this.currentConfig !== null) try { this.updateConfig(); } catch (_) {}
+              }, 10);
           }
           
-          // NEUE FUNKTION: Synchronisiere Orientation Buttons
+          // NEUE FUNKTION: Synchronisiert Orientation Buttons
           syncOrientationButtons() {
-              const orientHBtn = document.getElementById('orient-h');
-              const orientVBtn = document.getElementById('orient-v');
-              
-              if (!orientHBtn || !orientVBtn || !this.orH || !this.orV) return;
-              
-              // Entferne active Klasse von beiden Buttons
-              orientHBtn.classList.remove('active');
-              orientVBtn.classList.remove('active');
-              
-              // orV.checked = Hochkant-Layout → Button „Vertikal“ (orient-v) aktiv
-              if (this.orV.checked) {
-                  orientVBtn.classList.add('active');
-                  orientHBtn.classList.remove('active');
-              } else if (this.orH.checked) {
-                  orientHBtn.classList.add('active');
-                  orientVBtn.classList.remove('active');
-              } else {
-                  this.orV.checked = true;
-                  this.orH.checked = false;
-                  orientVBtn.classList.add('active');
-                  orientHBtn.classList.remove('active');
-              }
+              this.setLayoutOrientation(this.isLayoutVertical());
           }
           
           // Input-Sperr-Funktionen
@@ -5184,8 +5178,8 @@
           const inputW = parseFloat(this.wIn ? this.wIn.value : '179') || 179;
           const inputH = parseFloat(this.hIn ? this.hIn.value : '113') || 113;
             
-                    // Abgleich mit UI: Vertikal/Horizontal-Buttons ↔ Zell-Aspect (war gegenüber Labels versetzt)
-          const isVertical = this.orV ? this.orV.checked : false;
+                    // Abgleich mit UI: aktiv markierter Orientierungs-Button ↔ Zellmaße
+          const isVertical = this.isLayoutVertical();
             const originalCellW = isVertical ? inputW : inputH;
             const originalCellH = isVertical ? inputH : inputW;
             
@@ -5428,9 +5422,8 @@
             this.hIn.value = height;
             
             // Setze Orientierung auf Standard (vertikal als Standard)
-          const defaultVertical = true; // Vertikal als Standard
-          if (this.orH) this.orH.checked = !defaultVertical;
-          if (this.orV) this.orV.checked = defaultVertical;
+            const defaultVertical = true;
+            this.setLayoutOrientation(defaultVertical);
           
           // Synchronisiere Setup-Container Radio-Buttons
           const orientHSetup = document.getElementById('orient-h-setup');
@@ -5485,8 +5478,7 @@
           if (this.rowsIn) this.rowsIn.value = this.default.rows;
           if (this.wIn) this.wIn.value = this.default.width;
           if (this.hIn) this.hIn.value = this.default.height;
-          if (this.orH) this.orH.checked = false;
-          if (this.orV) this.orV.checked = true;
+          if (this.orH && this.orV) this.setLayoutOrientation(true);
   
             // Setze cols/rows synchron
             this.cols = this.default.cols;
@@ -5536,7 +5528,7 @@
           }
       processGroup(len, p) {
         // Verwende die korrekte Schienenlogik (wie im Worker)
-        const isVertical = this.orV?.checked;
+        const isVertical = this.isLayoutVertical();
         const actualCellWidth = isVertical ? parseFloat(this.wIn?.value || '179') : parseFloat(this.hIn?.value || '113');
         
         const totalLen = len * actualCellWidth;
@@ -5586,7 +5578,7 @@
   
       // Erdungsband-Berechnung
       calculateErdungsband() {
-        const isVertical = this.orV?.checked;
+        const isVertical = this.isLayoutVertical();
         const moduleHeight = isVertical ? parseFloat(this.hIn?.value || '113') : parseFloat(this.wIn?.value || '179');
         const gap = 2; // 2cm Lücke zwischen Modulen
         
@@ -5734,11 +5726,8 @@
             // Input-Werte setzen
               this.wIn.value = cfg.cellWidth;
               this.hIn.value = cfg.cellHeight;
-              this.orV.checked = cfg.orientation === 'vertical';
-              this.orH.checked = !this.orV.checked;
+              this.setLayoutOrientation(cfg.orientation === 'vertical');
               
-              // Synchronisiere mit den Orientation Buttons
-              this.syncOrientationButtons();
             this.incM.checked = cfg.incM;
               // WICHTIG: Zusatzprodukt-Checkboxen (mc4, solarkabel, holz, etc.) sind GLOBAL
               // und werden NICHT pro Konfiguration geladen, da sie für ALLE Configs gelten!
@@ -5777,10 +5766,8 @@
               this.wIn.value = cfg.cellWidth;
               this.hIn.value = cfg.cellHeight;
               // Wichtig: UI-Orientation strikt aus der Konfiguration setzen (damit buildGrid korrekt rendert)
-              if (this.orV && this.orH && typeof cfg.orientation === 'string') {
-                  this.orV.checked = cfg.orientation === 'vertical';
-                  this.orH.checked = !this.orV.checked;
-                  this.syncOrientationButtons?.();
+              if (typeof cfg.orientation === 'string') {
+                  this.setLayoutOrientation(cfg.orientation === 'vertical');
               }
               
               this.incM.checked = cfg.incM;
@@ -5822,10 +5809,8 @@
               this.wIn.value = cfg.cellWidth;
               this.hIn.value = cfg.cellHeight;
               // Wichtig: UI-Orientation strikt aus der Konfiguration setzen (damit buildGrid korrekt rendert)
-              if (this.orV && this.orH && typeof cfg.orientation === 'string') {
-                  this.orV.checked = cfg.orientation === 'vertical';
-                  this.orH.checked = !this.orV.checked;
-                  this.syncOrientationButtons?.();
+              if (typeof cfg.orientation === 'string') {
+                  this.setLayoutOrientation(cfg.orientation === 'vertical');
               }
               
               this.incM.checked = cfg.incM;
@@ -5892,8 +5877,7 @@
         //     – keine Rücksetzung auf Default-Werte
         //     Grid-Orientierung setzen wir weiterhin auf vertikal als Start, falls gewünscht
               if (this.orH && this.orV) {
-                  this.orH.checked = false;
-                  this.orV.checked = true;
+                  this.setLayoutOrientation(true);
                   this.syncOrientationButtons?.();
               }
             
@@ -6024,7 +6008,7 @@
           name:        configName,
           selection:   this.selection.map(r => [...r]),
           // Für neue Konfigurationen immer vertikal als Startzustand speichern
-          orientation: (this.orV && this.orV.checked) ? 'vertical' : 'horizontal',
+          orientation: this.isLayoutVertical() ? 'vertical' : 'horizontal',
           incM:        this.incM && this.incM.checked,
           mc4:         this.mc4 && this.mc4.checked,
           solarkabel:  this.solarkabel && this.solarkabel.checked,
@@ -6332,7 +6316,7 @@
                   rows: this.rows,
                   cellWidth: parseInt(this.wIn ? this.wIn.value : '179', 10),
                   cellHeight: parseInt(this.hIn ? this.hIn.value : '113', 10),
-                  orientation: this.orV && this.orV.checked ? 'vertical' : 'horizontal',
+                  orientation: this.isLayoutVertical() ? 'vertical' : 'horizontal',
                               // Checkbox-Einstellungen
               includeModules: this.incM ? this.incM.checked : false,
               mc4: this.mc4 ? this.mc4.checked : false,
@@ -6970,7 +6954,7 @@
             cols: this.cols,
             cellWidth: this.cellWidth || 179,
             cellHeight: this.cellHeight || 113,
-            orientation: this.orV && this.orV.checked ? 'vertical' : 'horizontal'
+            orientation: this.isLayoutVertical() ? 'vertical' : 'horizontal'
           };
           
           // Berechne Parts mit isolierten Daten
@@ -7056,16 +7040,14 @@
           const originalSel = this.selection;
           const originalRows = this.rows;
           const originalCols = this.cols;
-          const originalOrV = this.orV && this.orV.checked;
+          const originalVertical = this.isLayoutVertical();
           
           try {
             // Setze isolierte Werte temporär
             this.selection = isolatedGrid.selection;
             this.rows = isolatedGrid.rows;
             this.cols = isolatedGrid.cols;
-            if (this.orV) {
-              this.orV.checked = (isolatedGrid.orientation === 'vertical');
-            }
+            this.setLayoutOrientation(isolatedGrid.orientation === 'vertical');
             
             // Verwende die ECHTE optimierte Berechnung (nicht vereinfacht!)
             const parts = this.calculatePartsSync();
@@ -7076,9 +7058,7 @@
             this.selection = originalSel;
             this.rows = originalRows;
             this.cols = originalCols;
-            if (this.orV) {
-              this.orV.checked = originalOrV;
-            }
+            this.setLayoutOrientation(originalVertical);
           }
         } catch (error) {
           console.warn('[SolarGrid] calculatePartsIsolated error:', error);
@@ -7107,7 +7087,7 @@
           cols: this.cols,
           rows: this.rows,
           selection: this.selection.map(row => [...row]), // Deep copy
-          orientation: this.orV.checked ? 'vertical' : 'horizontal',
+          orientation: this.isLayoutVertical() ? 'vertical' : 'horizontal',
           includeModules: this.incM.checked,
           mc4: this.mc4.checked,
           cable: this.solarkabel.checked,
@@ -7165,7 +7145,7 @@
             targetSelection = this.selection ? this.selection.map(row => [...row]) : [];
             targetCols = this.cols;
             targetRows = this.rows;
-            targetOrientation = this.orV.checked ? 'vertical' : 'horizontal';
+            targetOrientation = this.isLayoutVertical() ? 'vertical' : 'horizontal';
             targetIncM = this.incM.checked;
             targetMc4 = this.mc4.checked;
             targetCable = this.solarkabel.checked;
@@ -7544,7 +7524,7 @@
         for (let i = 0; i < (this.configs?.length || 0); i++) {
           const cfg = this.configs[i]; if (!cfg) continue;
           const originalSel = this.selection; const originalRows = this.rows; const originalCols = this.cols;
-          const originalOrV = this.orV && this.orV.checked;
+          const originalOrVVertical = this.isLayoutVertical();
           const originalErdungsband = this.erdungsband && this.erdungsband.checked;
           const originalUlica = this.ulicaModule && this.ulicaModule.checked;
           const originalWIn = this.wIn && this.wIn.value;
@@ -7552,7 +7532,7 @@
           try {
             this.selection = (cfg.selection || []).map(r => Array.isArray(r) ? r.slice() : r);
             this.rows = cfg.rows; this.cols = cfg.cols;
-            if (this.orV) { this.orV.checked = (cfg.orientation === 'vertical'); }
+            if (this.orV && this.orH) { this.setLayoutOrientation(cfg.orientation === 'vertical'); }
             if (this.wIn) { this.wIn.value = cfg.cellWidth || 179; }
             if (this.hIn) { this.hIn.value = cfg.cellHeight || 113; }
             if (this.erdungsband) { this.erdungsband.checked = cfg.erdungsband || false; }
@@ -7562,7 +7542,7 @@
           } catch(_) {
           } finally {
             this.selection = originalSel; this.rows = originalRows; this.cols = originalCols;
-            if (this.orV) { this.orV.checked = originalOrV; }
+            if (this.orV && this.orH) { this.setLayoutOrientation(originalOrVVertical); }
             if (this.wIn) { this.wIn.value = originalWIn; }
             if (this.hIn) { this.hIn.value = originalHIn; }
             if (this.erdungsband) { this.erdungsband.checked = originalErdungsband; }
@@ -7672,7 +7652,7 @@
             rows: this.rows,
             cellWidth: parseInt(this.wIn ? this.wIn.value : '179', 10),
             cellHeight: parseInt(this.hIn ? this.hIn.value : '113', 10),
-            orientation: this.orV && this.orV.checked ? 'vertical' : 'horizontal',
+            orientation: this.isLayoutVertical() ? 'vertical' : 'horizontal',
             includeModules: this.incM ? this.incM.checked : false,
             mc4: this.mc4 ? this.mc4.checked : false,
             solarkabel: this.solarkabel ? this.solarkabel.checked : false,
