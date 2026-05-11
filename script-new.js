@@ -719,7 +719,9 @@
       processGroupSync(len, parts, cellWidth, cellHeight, orientation, options = {}) {
         // FALLBACK: Kopie der Worker-Berechnung
         const isVertical = orientation === 'vertical';
-        const actualCellWidth = isVertical ? cellWidth : cellHeight;
+        const iw = Number(cellWidth) || 0;
+        const ih = Number(cellHeight) || 0;
+        const actualCellWidth = isVertical ? Math.min(iw, ih) : Math.max(iw, ih);
         
         const totalLen = len * actualCellWidth;
         const floor360 = Math.floor(totalLen / 360);
@@ -3319,8 +3321,10 @@
   
       generateGridVisualization(selection, cols, rows, cellWidth, cellHeight, orientation = 'vertical') {
         const isVert = orientation === 'vertical';
-        const dispW = isVert ? cellWidth : cellHeight;
-        const dispH = isVert ? cellHeight : cellWidth;
+        const cw = Number(cellWidth) || 0;
+        const ch = Number(cellHeight) || 0;
+        const dispW = isVert ? Math.min(cw, ch) : Math.max(cw, ch);
+        const dispH = isVert ? Math.max(cw, ch) : Math.min(cw, ch);
         const layout = dispW < dispH ? 'portrait' : 'landscape';
         const ar = Math.max(dispW, dispH) / Math.min(dispW, dispH);
         let html = `<div class="grid" data-layout="${layout}" style="--cols: ${cols}; --rows: ${rows}; --cell-size: ${dispW}px; --cell-height: ${dispH}px; --cell-gap: 2px; --mod-fill-scale: ${ar.toFixed(4)};">`;
@@ -5178,10 +5182,10 @@
           const inputW = parseFloat(this.wIn ? this.wIn.value : '179') || 179;
           const inputH = parseFloat(this.hIn ? this.hIn.value : '113') || 113;
             
-                    // Abgleich mit UI: aktiv markierter Orientierungs-Button ↔ Zellmaße
+                    // Vertikal = Hochformat im Raster (schmale Kanten quer); Horizontal = quer
           const isVertical = this.isLayoutVertical();
-            const originalCellW = isVertical ? inputW : inputH;
-            const originalCellH = isVertical ? inputH : inputW;
+            const originalCellW = isVertical ? Math.min(inputW, inputH) : Math.max(inputW, inputH);
+            const originalCellH = isVertical ? Math.max(inputW, inputH) : Math.min(inputW, inputH);
             
                     // Maximale verfügbare Größe
           // 80px Abstand auf allen Seiten: links, rechts, oben, unten
@@ -5527,9 +5531,11 @@
           return p;
           }
       processGroup(len, p) {
-        // Verwende die korrekte Schienenlogik (wie im Worker)
+        // Verwende die korrekte Schienenlogik (wie im Worker): Kantenlänge entlang der Reihe
         const isVertical = this.isLayoutVertical();
-        const actualCellWidth = isVertical ? parseFloat(this.wIn?.value || '179') : parseFloat(this.hIn?.value || '113');
+        const iw = parseFloat(this.wIn?.value || '179') || 179;
+        const ih = parseFloat(this.hIn?.value || '113') || 113;
+        const actualCellWidth = isVertical ? Math.min(iw, ih) : Math.max(iw, ih);
         
         const totalLen = len * actualCellWidth;
         const floor360 = Math.floor(totalLen / 360);
@@ -5579,7 +5585,9 @@
       // Erdungsband-Berechnung
       calculateErdungsband() {
         const isVertical = this.isLayoutVertical();
-        const moduleHeight = isVertical ? parseFloat(this.hIn?.value || '113') : parseFloat(this.wIn?.value || '179');
+        const iw = parseFloat(this.wIn?.value || '179') || 179;
+        const ih = parseFloat(this.hIn?.value || '113') || 113;
+        const moduleHeight = isVertical ? Math.max(iw, ih) : Math.min(iw, ih);
         const gap = 2; // 2cm Lücke zwischen Modulen
         
         // Kopiere selection Matrix für Erdungsbandlength-Tracking
@@ -6178,7 +6186,9 @@
           // FALLBACK: Kopie der Worker-Berechnung
           processGroupDirectly(len, parts, cellWidth, cellHeight, orientation, ulicaModule = false) {
               const isVertical = orientation === 'vertical';
-              const actualCellWidth = isVertical ? cellWidth : cellHeight;
+              const iw = Number(cellWidth) || 0;
+              const ih = Number(cellHeight) || 0;
+              const actualCellWidth = isVertical ? Math.min(iw, ih) : Math.max(iw, ih);
               
               const totalLen = len * actualCellWidth;
               const floor360 = Math.floor(totalLen / 360);
