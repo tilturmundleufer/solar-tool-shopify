@@ -2141,12 +2141,14 @@ body {
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(14, 30, 52, 0.55);
+  /* Weißer Scrim + Blur: blendet Ränder des Shopify-iframes aus */
+  background: rgba(255, 255, 255, 0.93);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 16px; /* verhindert Rand-Cutoff auf kleinen Screens */
 }
 
@@ -2832,9 +2834,9 @@ html.solar-embed .planner {
   padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
     max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   box-sizing: border-box;
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
