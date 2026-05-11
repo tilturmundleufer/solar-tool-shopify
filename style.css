@@ -1340,7 +1340,7 @@ body {
   touch-action: pan-y;
   padding-right: 6px;
   /* Abstand über der festen Gesamt-Zeile, damit letzte Produktzeilen (z. B. Zweizeiler) nicht abgeschnitten wirken */
-  padding-bottom: 40px;
+  padding-bottom: 28px;
   margin-right: -4px;
   scrollbar-gutter: stable;
 }
@@ -3031,12 +3031,12 @@ html.solar-embed .ukc-video-wrapper {
 }
 
 .config-sidebar.config-card--summary .config-detail-view {
-  /* Höher als Übersicht: Platz für Gesamt + mehrzeiligen Disclaimer über .detail-buttons */
-  padding-bottom: 180px;
+  /* Platz für feste Button-Leiste unter der Gesamtzeile (kein Preis-Disclaimer mehr) */
+  padding-bottom: 128px;
 }
 
 .config-sidebar.config-card--summary .config-overview {
-  padding-bottom: 132px;
+  padding-bottom: 118px;
 }
 
 .config-sidebar.config-card--summary .total-price {
