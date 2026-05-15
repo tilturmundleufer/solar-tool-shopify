@@ -334,37 +334,76 @@
     // Manuell: Shopify Admin → Produkt → Variante → ID aus der URL
     // Format: Numerische ID (z.B. '44532840366389') oder GID ('gid://shopify/ProductVariant/...')
     // ────────────────────────────────────────────────────────────────────────────
+    function segmentVariant(privateId, businessId) {
+      return {
+        private: String(privateId || ''),
+        business: String(businessId || privateId || '')
+      };
+    }
+
     const SHOPIFY_VARIANT_MAP = {
       // ── Module und Paletten ───────────────────────────────────
-      Solarmodul:                    '53566816026965',
-      UlicaSolarBlackJadeFlow:       '53566816092501',
-      SolarmodulPalette:             '53566748754261',
-      UlicaSolarBlackJadeFlowPalette:'53566748787029',
+      Solarmodul:                    segmentVariant('53566816026965', '53566816026965'),
+      UlicaSolarBlackJadeFlow:       segmentVariant('53566816092501', '53566816092501'),
+      SolarmodulPalette:             segmentVariant('53566748754261', '53566748754261'),
+      UlicaSolarBlackJadeFlowPalette:segmentVariant('53566748787029', '53566748787029'),
       // ── Montagesystem ─────────────────────────────────────────
-      Endklemmen:                    '53566812782933',
-      Schrauben:                     '53566815404373',
-      Dachhaken:                     '53566812586325',
-      Mittelklemmen:                 '53566814945621',
-      Endkappen:                     '53566812684629',
-      Schienenverbinder:             '53566815306069',
-      Schiene_240_cm:                '53566815142229',
-      Schiene_360_cm:                '53566815240533',
+      Endklemmen:                    segmentVariant('53566812782933', '53566812782933'),
+      Schrauben:                     segmentVariant('53566815404373', '53566815404373'),
+      Dachhaken:                     segmentVariant('53566812586325', '53566812586325'),
+      Mittelklemmen:                 segmentVariant('53566814945621', '53566814945621'),
+      Endkappen:                     segmentVariant('53566812684629', '53566812684629'),
+      Schienenverbinder:             segmentVariant('53566815306069', '53566815306069'),
+      Schiene_240_cm:                segmentVariant('53566815142229', '53566815142229'),
+      Schiene_360_cm:                segmentVariant('53566815240533', '53566815240533'),
       // ── Zusatzprodukte ────────────────────────────────────────
-      MC4_Stecker:                   '53566814880085',
-      Solarkabel:                    '53566815502677',
-      Holzunterleger:                '53566816190805',
-      Ringkabelschuhe:               '53566815109461',
-      Erdungsband:                   '53566812914005',
-      Tellerkopfschraube:            '53566815732053',
+      MC4_Stecker:                   segmentVariant('53566814880085', '53566814880085'),
+      Solarkabel:                    segmentVariant('53566815502677', '53566815502677'),
+      Holzunterleger:                segmentVariant('53566816190805', '53566816190805'),
+      Ringkabelschuhe:               segmentVariant('53566815109461', '53566815109461'),
+      Erdungsband:                   segmentVariant('53566812914005', '53566812914005'),
+      Tellerkopfschraube:            segmentVariant('53566815732053', '53566815732053'),
       // ── Optimierer ────────────────────────────────────────────
-      HuaweiOpti:                    '53566814650709',
-      BRCOpti:                       '53566810489173',
+      HuaweiOpti:                    segmentVariant('53566814650709', '53566814650709'),
+      BRCOpti:                       segmentVariant('53566810489173', '53566810489173'),
     };
+
+    const VAT_SEGMENT_STORAGE_KEY = 'uk_vat_customer_segment';
+    const vatContextBridge = {
+      segment: null,
+      tag: '',
+      locked: false,
+      updatedAt: 0
+    };
+
+    function normalizeVatSegment(segment) {
+      return segment === 'business' ? 'business' : 'private';
+    }
+
+    function isPlaceholderVariantId(id) {
+      return typeof id === 'string' && id.startsWith('PLACEHOLDER_');
+    }
+
+    function getVariantIdForSegment(entry, segment) {
+      if (!entry) return '';
+      if (typeof entry === 'string' || typeof entry === 'number') return String(entry);
+      if (typeof entry === 'object') {
+        return String(entry[normalizeVatSegment(segment)] || entry.private || entry.business || '');
+      }
+      return '';
+    }
 
     // Hilfsfunktion: Prüft ob Shopify-Integration aktiv ist (keine Platzhalter)
     function isShopifyConfigured() {
-      const firstVariant = Object.values(SHOPIFY_VARIANT_MAP)[0];
-      return firstVariant && !firstVariant.startsWith('PLACEHOLDER_');
+      return Object.values(SHOPIFY_VARIANT_MAP).some((entry) => {
+        const privateId = getVariantIdForSegment(entry, 'private');
+        const businessId = getVariantIdForSegment(entry, 'business');
+        return (privateId && !isPlaceholderVariantId(privateId)) || (businessId && !isPlaceholderVariantId(businessId));
+      });
+    }
+
+    function resolveShopifyVariantId(productKey, segment) {
+      return getVariantIdForSegment(SHOPIFY_VARIANT_MAP[productKey], segment);
     }
 
     /** Cart-Permalink (Theme-Warenkorb): iframe → top.location, siehe window.SOLAR_SHOP_ORIGIN */
@@ -391,9 +430,32 @@
         const vid = toPermalinkVariantNumericId(it.id);
         if (!vid) return;
         const q = Math.max(1, parseInt(it.quantity, 10) || 1);
-        map.set(vid, (map.get(vid) || 0) + q);
+        const existing = map.get(vid);
+        if (existing) {
+          existing.quantity += q;
+        } else {
+          map.set(vid, { id: vid, quantity: q, properties: it.properties || {} });
+        }
       });
-      return Array.from(map.entries()).map(([id, quantity]) => ({ id, quantity }));
+      return Array.from(map.values());
+    }
+
+    function compactLineProperties(properties) {
+      const out = {};
+      Object.entries(properties || {}).forEach(([key, value]) => {
+        if (value == null || value === '') return;
+        if (Object.keys(out).length >= 25) return;
+        out[key] = String(value);
+      });
+      return out;
+    }
+
+    function base64UrlEncodeJson(value) {
+      const json = JSON.stringify(value || {});
+      const bytes = new TextEncoder().encode(json);
+      let binary = '';
+      bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
     function buildSolarBomNoteForPermalink(items) {
@@ -417,6 +479,10 @@
       params.set('storefront', 'true');
       const ct = options && options.customerType;
       if (ct) params.append('attributes[customer_type]', String(ct));
+      const firstProperties = compactLineProperties(lines[0] && lines[0].properties);
+      if (Object.keys(firstProperties).length) {
+        params.set('properties', base64UrlEncodeJson(firstProperties));
+      }
       const note = options && options.note;
       if (note) params.set('note', String(note));
       return `${shopOrigin}/cart/${pathSeg}?${params.toString()}`;
@@ -474,6 +540,81 @@
       } catch (_) { return null; }
     }
 
+    function getStoredThemeVatSegment() {
+      try {
+        const raw = localStorage.getItem(VAT_SEGMENT_STORAGE_KEY);
+        return raw === 'business' ? 'business' : (raw === 'private' ? 'private' : null);
+      } catch (_) { return null; }
+    }
+
+    function getSameOriginVatContext() {
+      try {
+        const api = window.customerVatContext;
+        if (!api || typeof api.getSegment !== 'function') return null;
+        const segment = normalizeVatSegment(api.getSegment());
+        let tag = '';
+        if (typeof api.getSegmentTag === 'function') tag = api.getSegmentTag(segment) || '';
+        return { segment, tag, locked: false };
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function getEffectiveVatContextForCart() {
+      if (vatContextBridge.segment) {
+        return {
+          segment: normalizeVatSegment(vatContextBridge.segment),
+          tag: vatContextBridge.tag || '',
+          locked: Boolean(vatContextBridge.locked)
+        };
+      }
+      const apiContext = getSameOriginVatContext();
+      if (apiContext) return apiContext;
+      const storedThemeSegment = getStoredThemeVatSegment();
+      if (storedThemeSegment) return { segment: storedThemeSegment, tag: '', locked: false };
+      const legacyType = getStoredCustomerType();
+      return { segment: legacyType || 'private', tag: '', locked: false };
+    }
+
+    function getEffectiveVatSegmentForCart() {
+      return getEffectiveVatContextForCart().segment;
+    }
+
+    function updateVatContextFromTheme(detail) {
+      if (!detail || (detail.segment !== 'private' && detail.segment !== 'business')) return;
+      vatContextBridge.segment = detail.segment;
+      vatContextBridge.tag = typeof detail.tag === 'string' ? detail.tag : '';
+      vatContextBridge.locked = Boolean(detail.locked);
+      vatContextBridge.updatedAt = Date.now();
+      updateCustomerTypeVisibility();
+      setActiveCustomerTypeButtons();
+      if (window.solarGrid) {
+        window.solarGrid.updateCurrentTotalPrice && window.solarGrid.updateCurrentTotalPrice();
+        window.solarGrid.updateOverviewTotalPrice && window.solarGrid.updateOverviewTotalPrice();
+      }
+    }
+
+    function getExpectedShopOrigin() {
+      try {
+        return new URL(getSolarShopOrigin()).origin;
+      } catch (_) {
+        return '';
+      }
+    }
+
+    window.addEventListener('message', function(event) {
+      if (window.self === window.top || event.source !== window.parent) return;
+      const expectedOrigin = getExpectedShopOrigin();
+      if (!expectedOrigin || event.origin !== expectedOrigin) return;
+      const data = event.data;
+      if (!data || typeof data !== 'object' || data.type !== 'solar:vatContext') return;
+      updateVatContextFromTheme(data);
+    });
+
+    document.addEventListener('vat:segment-change', function(event) {
+      updateVatContextFromTheme(event && event.detail ? event.detail : null);
+    });
+
     // Kundentyp speichern (30 Tage gültig)
     function storeCustomerType(type) {
       try {
@@ -482,8 +623,8 @@
       } catch (_) { }
     }
 
-    function isPrivateCustomer() { return getStoredCustomerType() === 'private'; }
-    function isBusinessCustomer() { return getStoredCustomerType() === 'business'; }
+    function isPrivateCustomer() { return getEffectiveVatSegmentForCart() === 'private'; }
+    function isBusinessCustomer() { return getEffectiveVatSegmentForCart() === 'business'; }
 
     // Kundentyp setzen und UI aktualisieren
     function setCustomerType(type) {
@@ -554,6 +695,15 @@
           setActiveCustomerTypeButtons();
         }
       } catch (_) { }
+    }
+
+    function buildVatLineProperties(productKey, extraProperties) {
+      const vatContext = getEffectiveVatContextForCart();
+      return Object.assign({
+        _productKey: productKey,
+        _vat_segment: vatContext.segment,
+        _vat_tags: vatContext.tag || ''
+      }, extraProperties || {});
     }
     
     const PRODUCT_IMAGES = {
@@ -6501,15 +6651,16 @@
           return false;
         }
         
-        const variantId = SHOPIFY_VARIANT_MAP[productKey];
+        const vatContext = getEffectiveVatContextForCart();
+        const variantId = resolveShopifyVariantId(productKey, vatContext.segment);
         if (!variantId) {
-          console.warn(`[SolarGrid] Kein Shopify Variant für: ${productKey}`);
-          this.showToast(`Produkt nicht konfiguriert: ${productKey}`, 3000);
+          console.warn(`[SolarGrid] Kein Shopify Variant für ${vatContext.segment}: ${productKey}`);
+          this.showToast(`Produkt nicht konfiguriert (${vatContext.segment}): ${productKey}`, 3000);
           return false;
         }
         
         // Prüfe ob Platzhalter-IDs verwendet werden
-        if (variantId.startsWith('PLACEHOLDER_')) {
+        if (isPlaceholderVariantId(variantId)) {
           console.error(`[SolarGrid] Shopify nicht konfiguriert! Bitte echte Variant-IDs in SHOPIFY_VARIANT_MAP eintragen.`);
           this.showToast('Shopify noch nicht konfiguriert. Bitte Variant-IDs eintragen.', 5000);
           return false;
@@ -6519,13 +6670,14 @@
           try {
             const origin = getSolarShopOrigin();
             const qty = Math.max(1, parseInt(quantity, 10) || 1);
+            const properties = buildVatLineProperties(productKey);
             const url = buildShopifyCartPermalinkUrl(
               origin,
-              [{ id: variantId, quantity: qty, properties: { _productKey: productKey } }],
+              [{ id: variantId, quantity: qty, properties }],
               {
-                customerType: getStoredCustomerType() || undefined,
+                customerType: vatContext.segment,
                 note: buildSolarBomNoteForPermalink([
-                  { id: variantId, quantity: qty, properties: { _productKey: productKey } },
+                  { id: variantId, quantity: qty, properties },
                 ]),
               }
             );
@@ -6549,6 +6701,7 @@
       async addAllToShopifyCart(parts) {
         const items = [];
         const skippedItems = [];
+        const vatContext = getEffectiveVatContextForCart();
         
         for (const [key, qtyRaw] of Object.entries(parts || {})) {
           const qty = Math.max(0, Math.floor(Number(qtyRaw)));
@@ -6561,13 +6714,17 @@
           
           if (packs <= 0) continue;
           
-          const variantId = SHOPIFY_VARIANT_MAP[key];
-          if (!variantId || variantId.startsWith('PLACEHOLDER_')) {
+          const variantId = resolveShopifyVariantId(key, vatContext.segment);
+          if (!variantId || isPlaceholderVariantId(variantId)) {
             skippedItems.push(key);
             continue;
           }
           
-          items.push({ id: variantId, quantity: packs, properties: { _productKey: key, _originalQty: qty, _ve: ve } });
+          items.push({
+            id: variantId,
+            quantity: packs,
+            properties: buildVatLineProperties(key, { _originalQty: qty, _ve: ve })
+          });
         }
         
         // Falls alle Items Platzhalter sind, Fehlermeldung anzeigen
@@ -6600,7 +6757,7 @@
           }));
           const origin = getSolarShopOrigin();
           const url = buildShopifyCartPermalinkUrl(origin, payload, {
-            customerType: getStoredCustomerType() || undefined,
+            customerType: vatContext.segment,
             note: buildSolarBomNoteForPermalink(payload),
           });
           if (!url) {

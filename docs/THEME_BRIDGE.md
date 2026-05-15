@@ -9,9 +9,10 @@ Referenz: [Shopify: Create cart permalinks](https://shopify.dev/docs/apps/checko
 ## Ablauf (iframe oder Vercel-Tab)
 
 1. Kunde konfiguriert auf **Vercel-Origin**.
-2. Beim Hinzufügen baut das Tool eine URL der Form  
-   `https://EURE-SHOP-DOMAIN/cart/{variantId}:{qty},…?storefront=true&note=…&attributes[customer_type]=…`
-3. **Navigation:**
+2. Die Shopify-Seite sendet den aktuellen VAT-Kontext aus `window.customerVatContext.getSegment()` per `postMessage` an das iframe. Bei Gästen wird der Kontext nach `vat:segment-change` erneut synchronisiert; eingeloggte Kunden und Firmen-Accounts folgen damit derselben Theme-Logik.
+3. Beim Hinzufügen baut das Tool eine URL der Form:
+   `https://EURE-SHOP-DOMAIN/cart/{variantId}:{qty},…?storefront=true&note=…&attributes[customer_type]=…&properties=…`
+4. **Navigation:**
    - **iframe:** Shopify setzt `frame-ancestors 'none'` – die Cart-Seite darf **nicht** im iframe geladen werden. Der Konfigurator sendet deshalb **`postMessage`** (`type: solar:cartRedirect`, `url`) an die **Shop-Seite**; die Section `solar-konfigurator.liquid` enthält einen Listener und setzt `window.location.href` (ganzer Tab zum Warenkorb). Zusätzlich wird `window.top.location` versucht, falls der Browser es erlaubt.
    - **Voller Tab auf Vercel** (kein iframe): direkt `window.location.href = url`.
 
@@ -20,6 +21,22 @@ Referenz: [Shopify: Create cart permalinks](https://shopify.dev/docs/apps/checko
 ### iframe-Höhe (ohne Scrollen im iframe)
 
 Der Konfigurator setzt im iframe die Klasse `html.solar-embed` und sendet **`postMessage`** mit `type: solar:iframeHeight` und `height` (Pixel). Die Section **passt Höhe und `min-height` des iframe** an (max. ca. 95 % der **Shop-Fensterhöhe**). Die Theme-Datei `solar-konfigurator.liquid` enthält den Listener; ohne aktuelles Theme-Snippet bleibt nur die manuelle **Start-Höhe** aus dem Editor.
+
+### VAT-Kontext (Privat/Gewerbe)
+
+Im iframe ist `window.customerVatContext` nicht direkt erreichbar, weil der Konfigurator auf der Vercel-Origin läuft. Die Shopify-Section liest deshalb auf der Parent-Seite:
+
+- `window.customerVatContext.getSegment()` → `private` oder `business`
+- `window.customerVatContext.getSegmentTag(segment)` → der Theme-Tag für das Segment
+- `window.__VAT_CUSTOMER_BOOTSTRAP.companyLockedBusiness` → Firmen-Zwang für eingeloggte Kunden mit Firma
+
+Die Section sendet diesen Zustand an das iframe:
+
+```js
+{ type: 'solar:vatContext', segment: 'private' | 'business', tag: '...', locked: true | false }
+```
+
+Der Konfigurator akzeptiert die Nachricht nur vom konfigurierten `window.SOLAR_SHOP_ORIGIN`, nutzt sie als primäre Segmentquelle und fällt nur außerhalb des Shop-iframes auf `customerVatContext`, `localStorage.uk_vat_customer_segment` oder den alten `solarTool_customerType` zurück.
 
 ---
 
@@ -48,6 +65,6 @@ Der Konfigurator setzt im iframe die Klasse `html.solar-embed` und sendet **`pos
 
 - **Storefront-Passwort:** Cart-Permalinks **umgehen** das Shop-Passwort nicht (Shopify-Limitierung).
 - **Sehr lange Konfigurationen:** Die URL enthält alle Varianten:mengen plus eine kompakte **Notiz** (`note`); bei extrem vielen Zeilen kann die URL-Länge zum Browser-Limit werden (selten).
-- **Line Item Properties:** Shopify erlaubt im Permalink nur eingeschränkt Properties auf der **ersten** Zeile; das Tool legt stattdessen eine **Bestellnotiz** mit Stücklisten-Kurztext an.
+- **Line Item Properties:** Shopify erlaubt im Permalink nur Properties auf der **ersten** Zeile. Das Tool setzt dort `_vat_segment`, `_vat_tags` und `_productKey`; die eigentliche Privat/Gewerbe-Entscheidung erfolgt über die passende Variant-ID. Für alle Zeilen bleibt die kompakte Bestellnotiz (`note`) die robuste Übersicht.
 
 Weitere Einrichtung: [STOREFRONT_SETUP.md](STOREFRONT_SETUP.md) (Warenkorb per Permalink + Varianten).

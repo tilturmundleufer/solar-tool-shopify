@@ -161,31 +161,38 @@ async function main() {
   console.log('📋  SHOPIFY_VARIANT_MAP – in script-new.js ~Zeile 318 einfügen:');
   console.log('═'.repeat(68));
   console.log(`
+    function segmentVariant(privateId, businessId) {
+      return {
+        private: String(privateId || ''),
+        business: String(businessId || privateId || '')
+      };
+    }
+
     const SHOPIFY_VARIANT_MAP = {
       // ── Module und Paletten ───────────────────────────────────
-      Solarmodul:                    '${v('Solarmodul')}',
-      UlicaSolarBlackJadeFlow:       '${v('UlicaSolarBlackJadeFlow')}',
-      SolarmodulPalette:             '${v('SolarmodulPalette')}',
-      UlicaSolarBlackJadeFlowPalette:'${v('UlicaSolarBlackJadeFlowPalette')}',
+      Solarmodul:                    segmentVariant('${v('Solarmodul')}', '${v('Solarmodul')}'),
+      UlicaSolarBlackJadeFlow:       segmentVariant('${v('UlicaSolarBlackJadeFlow')}', '${v('UlicaSolarBlackJadeFlow')}'),
+      SolarmodulPalette:             segmentVariant('${v('SolarmodulPalette')}', '${v('SolarmodulPalette')}'),
+      UlicaSolarBlackJadeFlowPalette:segmentVariant('${v('UlicaSolarBlackJadeFlowPalette')}', '${v('UlicaSolarBlackJadeFlowPalette')}'),
       // ── Montagesystem ─────────────────────────────────────────
-      Endklemmen:                    '${v('Endklemmen')}',
-      Schrauben:                     '${v('Schrauben')}',
-      Dachhaken:                     '${v('Dachhaken')}',
-      Mittelklemmen:                 '${v('Mittelklemmen')}',
-      Endkappen:                     '${v('Endkappen')}',
-      Schienenverbinder:             '${v('Schienenverbinder')}',
-      Schiene_240_cm:                '${v('Schiene_240_cm')}',
-      Schiene_360_cm:                '${v('Schiene_360_cm')}',
+      Endklemmen:                    segmentVariant('${v('Endklemmen')}', '${v('Endklemmen')}'),
+      Schrauben:                     segmentVariant('${v('Schrauben')}', '${v('Schrauben')}'),
+      Dachhaken:                     segmentVariant('${v('Dachhaken')}', '${v('Dachhaken')}'),
+      Mittelklemmen:                 segmentVariant('${v('Mittelklemmen')}', '${v('Mittelklemmen')}'),
+      Endkappen:                     segmentVariant('${v('Endkappen')}', '${v('Endkappen')}'),
+      Schienenverbinder:             segmentVariant('${v('Schienenverbinder')}', '${v('Schienenverbinder')}'),
+      Schiene_240_cm:                segmentVariant('${v('Schiene_240_cm')}', '${v('Schiene_240_cm')}'),
+      Schiene_360_cm:                segmentVariant('${v('Schiene_360_cm')}', '${v('Schiene_360_cm')}'),
       // ── Zusatzprodukte ────────────────────────────────────────
-      MC4_Stecker:                   '${v('MC4_Stecker')}',
-      Solarkabel:                    '${v('Solarkabel')}',
-      Holzunterleger:                '${v('Holzunterleger')}',
-      Ringkabelschuhe:               '${v('Ringkabelschuhe')}',
-      Erdungsband:                   '${v('Erdungsband')}',
-      Tellerkopfschraube:            '${v('Tellerkopfschraube')}',
+      MC4_Stecker:                   segmentVariant('${v('MC4_Stecker')}', '${v('MC4_Stecker')}'),
+      Solarkabel:                    segmentVariant('${v('Solarkabel')}', '${v('Solarkabel')}'),
+      Holzunterleger:                segmentVariant('${v('Holzunterleger')}', '${v('Holzunterleger')}'),
+      Ringkabelschuhe:               segmentVariant('${v('Ringkabelschuhe')}', '${v('Ringkabelschuhe')}'),
+      Erdungsband:                   segmentVariant('${v('Erdungsband')}', '${v('Erdungsband')}'),
+      Tellerkopfschraube:            segmentVariant('${v('Tellerkopfschraube')}', '${v('Tellerkopfschraube')}'),
       // ── Optimierer ────────────────────────────────────────────
-      HuaweiOpti:                    '${v('HuaweiOpti')}',
-      BRCOpti:                       '${v('BRCOpti')}',
+      HuaweiOpti:                    segmentVariant('${v('HuaweiOpti')}', '${v('HuaweiOpti')}'),
+      BRCOpti:                       segmentVariant('${v('BRCOpti')}', '${v('BRCOpti')}'),
     };`);
 
   if (errors.length > 0) {

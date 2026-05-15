@@ -108,6 +108,58 @@
             }
           } catch (_) {}
         }
+        function getSolarIframe() {
+          return sectionEl ? sectionEl.querySelector('iframe.solar-konfigurator-iframe') : null;
+        }
+        function normalizeVatSegment(segment) {
+          return segment === 'business' ? 'business' : 'private';
+        }
+        function readVatContext(detail) {
+          var api = window.customerVatContext;
+          var bootstrap = window.__VAT_CUSTOMER_BOOTSTRAP || {};
+          var segment = detail && detail.segment;
+          var tag = detail && detail.tag;
+          if (!segment && api && typeof api.getSegment === 'function') {
+            try {
+              segment = api.getSegment();
+            } catch (_) {}
+          }
+          if (!segment) return null;
+          segment = normalizeVatSegment(segment);
+          if (!tag && api && typeof api.getSegmentTag === 'function') {
+            try {
+              tag = api.getSegmentTag(segment);
+            } catch (_) {}
+          }
+          return {
+            type: 'solar:vatContext',
+            segment: segment,
+            tag: typeof tag === 'string' ? tag : '',
+            locked: Boolean((detail && detail.locked) || bootstrap.companyLockedBusiness)
+          };
+        }
+        function pushVatSegmentToSolarIframe(detail) {
+          var origin = allowedOrigin();
+          var iframe = getSolarIframe();
+          var payload = readVatContext(detail);
+          if (!origin || !iframe || !iframe.contentWindow || !payload) return false;
+          try {
+            iframe.contentWindow.postMessage(payload, origin);
+            cartDebugLog('vat-context-sent', payload);
+            return true;
+          } catch (_) {
+            return false;
+          }
+        }
+        function scheduleVatContextPush() {
+          var attempts = 0;
+          function tick() {
+            if (pushVatSegmentToSolarIframe()) return;
+            attempts += 1;
+            if (attempts < 40) window.setTimeout(tick, 125);
+          }
+          tick();
+        }
         function openConfiguredCartDrawer() {
           var opened = false;
           var drawer = document.querySelector('.cart-drawer[data-cart-drawer]');
@@ -201,6 +253,15 @@
             if (wrap) wrap.style.minHeight = h + 'px';
           }
         });
+        var solarIframe = getSolarIframe();
+        if (solarIframe) {
+          solarIframe.addEventListener('load', scheduleVatContextPush);
+        }
+        document.addEventListener('vat:segment-change', function (event) {
+          var detail = event && event.detail ? event.detail : null;
+          pushVatSegmentToSolarIframe(detail);
+        });
+        scheduleVatContextPush();
       })();
     </script>
   {% endif %}
